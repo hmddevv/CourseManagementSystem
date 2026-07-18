@@ -1,0 +1,49 @@
+# ==========================================================================
+# Common configuration (shared across all profiles)
+# Active profile is selected via SPRING_PROFILES_ACTIVE env var.
+# Default profile = dev (H2 in-memory) so the app runs with zero setup.
+# ==========================================================================
+spring:
+  application:
+    name: course-management-system
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# --- OpenAPI / Swagger UI ---
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+# --- Actuator (used by Docker healthcheck) ---
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# --- Application-specific business defaults ---
+app:
+  info:
+    title: He thong quan ly khoa hoc
+    version: 1.0.0

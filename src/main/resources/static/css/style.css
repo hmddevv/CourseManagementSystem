@@ -1,0 +1,116 @@
+:root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --gray: #6b7280;
+    --red: #dc2626;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+/* Topbar */
+.topbar {
+    display: flex; align-items: center; gap: 20px;
+    background: #fff; padding: 0 24px; height: 60px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); position: sticky; top: 0; z-index: 10;
+}
+.brand { font-weight: 700; font-size: 18px; color: var(--primary); white-space: nowrap; }
+.tabs { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+.tab {
+    border: none; background: transparent; padding: 8px 14px; border-radius: 8px;
+    cursor: pointer; font-size: 14px; color: var(--muted); white-space: nowrap;
+}
+.tab:hover { background: #f3f4f6; }
+.tab.active { background: var(--primary); color: #fff; }
+.swagger-link { color: var(--primary); text-decoration: none; font-size: 13px; white-space: nowrap; }
+
+/* Views */
+main { max-width: 1100px; margin: 24px auto; padding: 0 24px; }
+.view { display: none; }
+.view.active { display: block; animation: fade .2s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; } }
+h1 { font-size: 22px; margin-bottom: 16px; }
+h2 { font-size: 17px; margin: 24px 0 12px; }
+.view-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+/* Stat cards */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 16px; }
+.stat-card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.stat-card .num { font-size: 30px; font-weight: 700; color: var(--primary); }
+.stat-card .label { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.popular-list { display: flex; flex-direction: column; gap: 8px; }
+.popular-item { background: #fff; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.popular-item .count { color: var(--primary); font-weight: 600; }
+
+/* Filters */
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.filters input, .filters select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+.filters input { min-width: 220px; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+th { background: #f9fafb; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafafe; }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.badge.PUBLISHED { background: #dcfce7; color: var(--green); }
+.badge.DRAFT { background: #f3f4f6; color: var(--gray); }
+.badge.ARCHIVED { background: #fee2e2; color: var(--red); }
+.badge.ACTIVE { background: #dbeafe; color: #2563eb; }
+.badge.COMPLETED { background: #dcfce7; color: var(--green); }
+.badge.CANCELLED { background: #fee2e2; color: var(--red); }
+.badge.level { background: #ede9fe; color: var(--primary-dark); }
+
+/* Progress bar */
+.progress { background: #eef2ff; border-radius: 999px; height: 8px; width: 90px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.progress > div { background: var(--primary); height: 100%; }
+
+/* Buttons */
+.btn { padding: 7px 14px; border: 1px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text); }
+.btn:hover { background: #f3f4f6; }
+.btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn.primary:hover { background: var(--primary-dark); }
+.btn.sm { padding: 4px 10px; font-size: 12px; }
+.btn.danger { color: var(--red); border-color: #fca5a5; }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Pager */
+.pager { display: flex; gap: 8px; justify-content: center; margin-top: 16px; align-items: center; }
+.pager span { color: var(--muted); font-size: 13px; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; align-items: flex-start; justify-content: center; padding-top: 60px; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 14px; width: 480px; max-width: 92vw; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--border); }
+.modal-close { border: none; background: none; font-size: 24px; cursor: pointer; color: var(--muted); }
+.modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; max-height: 60vh; overflow-y: auto; }
+.modal-foot { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+.field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; }
+.field textarea { resize: vertical; min-height: 70px; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #111827; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px; opacity: 0; transition: all .3s; z-index: 200; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.error { background: var(--red); }
+.toast.success { background: var(--green); }
+
+.muted { color: var(--muted); font-size: 13px; }
+.empty { text-align: center; padding: 40px; color: var(--muted); }

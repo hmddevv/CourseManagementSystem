@@ -1,0 +1,43 @@
+# ============================================================
+# Docker Compose: MySQL 8 + ung dung Spring Boot (profile prod)
+# Chay:  docker compose up --build
+# Truy cap: http://localhost:8080
+# ============================================================
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: cms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: coursedb
+      MYSQL_USER: course_user
+      MYSQL_PASSWORD: course_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    ports:
+      - "3307:3306"          # host 3307 -> container 3306 (tranh dung MySQL cuc bo)
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: cms-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/coursedb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: course_user
+      DB_PASSWORD: course_pass
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql_data:

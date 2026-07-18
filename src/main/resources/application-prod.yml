@@ -1,0 +1,25 @@
+# ==========================================================================
+# PROD profile - MySQL 8 (run via Docker Compose).
+# All connection values come from environment variables so the same image
+# runs in any environment without rebuild.
+# ==========================================================================
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/coursedb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:course_user}
+    password: ${DB_PASSWORD:course_pass}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+logging:
+  level:
+    com.university.coursemanagement: INFO
+    org.hibernate.SQL: WARN
