@@ -132,3 +132,16 @@ Lỗi trả về `ErrorResponse { status, error, message, path, fieldErrors }` q
 | `SPRING_PROFILES_ACTIVE` | `dev` | Chọn profile |
 | `DB_URL` | `jdbc:mysql://localhost:3306/coursedb` | JDBC URL |
 | `DB_USERNAME` / `DB_PASSWORD` | `course_user` / `course_pass` | Tài khoản DB |
+
+---
+
+## 7. Tài liệu thiết kế
+
+| Tài liệu | Nội dung |
+|---|---|
+| [`docs/database-schema.md`](docs/database-schema.md) | Sơ đồ ERD, mô tả chi tiết 6 bảng, ràng buộc, lý do thiết kế, đề xuất chỉ mục |
+| [`docs/architecture.md`](docs/architecture.md) | Sơ đồ tầng, sơ đồ package, sơ đồ tuần tự luồng ghi danh, danh mục API, cấu hình profile, triển khai |
+| [`docs/schema.sql`](docs/schema.sql) | DDL đầy đủ — **sinh trực tiếp từ metadata Hibernate**, không viết tay |
+
+Ảnh sơ đồ dùng cho báo cáo: `docs/database-schema.png`, `docs/architecture.png`,
+`docs/architecture-package.png`, `docs/architecture-sequence-enrollment.png`, `docs/deployment.png`.
