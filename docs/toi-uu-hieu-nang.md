@@ -152,6 +152,44 @@ khóa học, cách cũ nạp 10 000 đối tượng Java vào heap; cách mới 
 | `ddl-auto: update` ở profile `prod` | Phạm vi đồ án; thêm công cụ migration sẽ kéo theo chi phí bảo trì cho các bảng sẽ thêm ở giai đoạn sau | **Flyway** / Liquibase, đổi `ddl-auto` thành `validate` |
 | Phân trang dùng `OFFSET` | Dữ liệu đồ án nhỏ, `OFFSET` đủ dùng và đơn giản | **Keyset pagination** khi bảng vượt vài triệu dòng |
 | Chưa có index cho `courses.status`, `enrollments(course_id, status)` | Dữ liệu nhỏ, chưa đo được lợi ích | Thêm index khi có số liệu thực tế chứng minh |
-| Chưa có xác thực / phân quyền | Ngoài phạm vi đề tài | Spring Security + JWT, phân vai ADMIN / INSTRUCTOR / STUDENT |
+| **Danh tính người dùng lấy từ request** (`studentId` nằm trong body/URL) | Hệ thống chưa có xác thực — đây là hệ quả trực tiếp, không phải sơ suất riêng lẻ | Xem mục 7 bên dưới |
 
 Các hạn chế này được nêu rõ để **hiểu và giải thích được**, không phải để giấu đi.
+
+---
+
+## 7. Hạn chế bảo mật quan trọng nhất: chưa có xác thực
+
+**Hiện trạng.** Toàn bộ hệ thống không có đăng nhập. Mọi endpoint nhận danh tính người dùng
+**từ chính request**:
+
+```jsonc
+// POST /api/enrollments        → { "studentId": 5, "courseId": 12 }
+// POST /api/courses/7/reviews  → { "studentId": 5, "rating": 5 }
+// Header X-User: <ten>         → dùng cho cột created_by / updated_by
+```
+
+**Hệ quả.** Bất kỳ ai gọi được API đều có thể đổi số `studentId` để hành động **nhân danh học
+viên khác**: ghi danh hộ, viết đánh giá giả, sửa hoặc xóa đánh giá của người khác. Kiểm tra
+`review.getStudent().getId().equals(request.studentId())` trong `ReviewServiceImpl.updateReview`
+**trông giống** kiểm tra quyền sở hữu nhưng thực chất **không phải**, vì cả hai vế đều do người
+gọi cung cấp. Tương tự, header `X-User` dùng cho nhật ký thao tác có thể bị giả mạo tùy ý, nên
+`audit_logs.actor` chỉ có giá trị tham khảo, **không dùng làm bằng chứng** được.
+
+**Vì sao vẫn giữ như vậy trong đồ án.** Đề tài không yêu cầu xác thực, và thêm Spring Security
+đúng cách (đăng ký, đăng nhập, mã hóa mật khẩu, phát và làm mới token, phân quyền theo vai trò)
+là một khối lượng công việc tương đương một đề tài riêng. Nhóm chọn làm đúng phần trong phạm vi
+và **nêu rõ hạn chế** thay vì làm một lớp xác thực nửa vời tạo cảm giác an toàn giả.
+
+**Giải pháp đúng khi triển khai thật.**
+
+1. Thêm **Spring Security + JWT**; sau đăng nhập, mỗi request mang token.
+2. Lấy danh tính từ `SecurityContextHolder`, **không** từ body — bỏ hẳn trường `studentId` khỏi
+   `EnrollmentRequest` và `ReviewRequest`.
+3. Phân vai `ADMIN` / `INSTRUCTOR` / `STUDENT`; các thao tác quản trị (tạo khóa học, xuất bản,
+   xóa) chỉ dành cho `ADMIN` / `INSTRUCTOR`.
+4. Đổi thân `AuditorAware` trong `JpaAuditingConfig` sang đọc principal đã xác thực — **không
+   phải sửa entity nào**, vì `created_by` / `updated_by` đã tách khỏi nguồn danh tính từ đầu.
+
+Điểm 4 là lý do `AuditorAware` được tách thành một bean riêng ngay từ bây giờ: chỗ cần thay đổi
+đã được cô lập sẵn vào đúng một file.

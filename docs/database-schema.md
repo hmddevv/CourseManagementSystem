@@ -10,11 +10,14 @@
 
 ```mermaid
 erDiagram
-    CATEGORIES  ||--o{ COURSES     : "phân loại"
-    INSTRUCTORS ||--o{ COURSES     : "phụ trách"
-    COURSES     ||--o{ LESSONS     : "gồm các bài học"
-    COURSES     ||--o{ ENROLLMENTS : "được ghi danh"
-    STUDENTS    ||--o{ ENROLLMENTS : "ghi danh"
+    CATEGORIES  ||--o{ COURSES      : "phân loại"
+    INSTRUCTORS ||--o{ COURSES      : "phụ trách"
+    COURSES     ||--o{ LESSONS      : "gồm các bài học"
+    COURSES     ||--o{ ENROLLMENTS  : "được ghi danh"
+    STUDENTS    ||--o{ ENROLLMENTS  : "ghi danh"
+    COURSES     ||--o{ REVIEWS      : "được đánh giá"
+    STUDENTS    ||--o{ REVIEWS      : "đánh giá"
+    ENROLLMENTS ||--o| CERTIFICATES : "cấp chứng chỉ"
 
     CATEGORIES {
         bigint       id PK
@@ -98,6 +101,9 @@ erDiagram
 | Student ↔ Course | N — N | qua bảng `enrollments` | Hai `@ManyToOne` trong `Enrollment` |
 | Student → Enrollment | 1 — N | `enrollments.student_id` (NOT NULL) | `@ManyToOne(fetch = LAZY, optional = false)` |
 | Course → Enrollment | 1 — N | `enrollments.course_id` (NOT NULL) | `@ManyToOne(fetch = LAZY, optional = false)` |
+| Student → Review | 1 — N | `reviews.student_id` (NOT NULL) | `@ManyToOne(fetch = LAZY, optional = false)` |
+| Course → Review | 1 — N | `reviews.course_id` (NOT NULL) | `@ManyToOne(fetch = LAZY, optional = false)` |
+| Enrollment → Certificate | 1 — 0..1 | `certificates.enrollment_id` (NOT NULL, UNIQUE) | `@OneToOne(fetch = LAZY, optional = false)` |
 
 ---
 
@@ -183,6 +189,46 @@ ALTER TABLE enrollments
   ADD CONSTRAINT uk_enrollment_student_course UNIQUE (student_id, course_id);
 ```
 
+### 2.7. `reviews` — Đánh giá khóa học
+
+| Cột | Kiểu | Ràng buộc | Ý nghĩa nghiệp vụ |
+|---|---|---|---|
+| `id` | `BIGINT` | PK, AUTO_INCREMENT | Khóa chính |
+| `student_id` | `BIGINT` | NOT NULL, FK → `students.id`, UNIQUE(cặp) | Học viên viết đánh giá |
+| `course_id` | `BIGINT` | NOT NULL, FK → `courses.id`, UNIQUE(cặp) | Khóa học được đánh giá |
+| `rating` | `INTEGER` | NOT NULL, 1–5 | Điểm sao. Giới hạn bằng `@Min(1) @Max(5)` ở DTO |
+| `comment` | `VARCHAR(1000)` | | Nhận xét |
+| `created_at` / `updated_at` / `version` | | | Kế thừa `BaseEntity` |
+
+```sql
+ALTER TABLE reviews
+  ADD CONSTRAINT uk_review_student_course UNIQUE (student_id, course_id);
+```
+
+### 2.8. `certificates` — Chứng chỉ hoàn thành
+
+| Cột | Kiểu | Ràng buộc | Ý nghĩa nghiệp vụ |
+|---|---|---|---|
+| `id` | `BIGINT` | PK, AUTO_INCREMENT | Khóa chính |
+| `enrollment_id` | `BIGINT` | NOT NULL, FK → `enrollments.id`, **UNIQUE** | Mỗi ghi danh chỉ có một chứng chỉ |
+| `code` | `VARCHAR(60)` | NOT NULL, **UNIQUE** | Mã tra cứu `CERT-{courseId}-{studentId}-{yyyyMMdd}-{6 ký tự}` |
+| `issued_at` | `DATETIME(6)` | NOT NULL | Thời điểm cấp |
+| `student_name` | `VARCHAR(150)` | NOT NULL | Tên học viên **tại thời điểm cấp** |
+| `course_title` | `VARCHAR(200)` | NOT NULL | Tên khóa học **tại thời điểm cấp** |
+| `created_at` / `updated_at` / `version` | | | Kế thừa `BaseEntity` |
+
+### 2.9. `audit_logs` — Nhật ký thao tác
+
+| Cột | Kiểu | Ràng buộc | Ý nghĩa nghiệp vụ |
+|---|---|---|---|
+| `id` | `BIGINT` | PK, AUTO_INCREMENT | Khóa chính |
+| `entity_name` | `VARCHAR(60)` | NOT NULL, index | Thực thể bị tác động (`Course`, `Enrollment`…) |
+| `entity_id` | `BIGINT` | index | Khóa chính của bản ghi bị tác động |
+| `action` | `ENUM` | NOT NULL, index | `CREATE` / `UPDATE` / `DELETE` / `PUBLISH` / `ARCHIVE` / `ENROLL` / `CANCEL` |
+| `actor` | `VARCHAR(100)` | NOT NULL | Người thực hiện (header `X-User`, mặc định `system`) |
+| `detail` | `VARCHAR(500)` | | Tên phương thức + tham số rút gọn |
+| `created_at` / `updated_at` / `version` | | | Kế thừa `BaseEntity` |
+
 ---
 
 ## 3. Lý do thiết kế
@@ -202,8 +248,13 @@ một khóa, thống kê tỉ lệ hoàn thành) mà không phải join qua hai 
 ### 3.2. Vì sao mọi entity kế thừa `BaseEntity`?
 
 `BaseEntity` là `@MappedSuperclass` (không phải `@Entity`) nên **không sinh bảng riêng** —
-các cột `id`, `created_at`, `updated_at`, `version` được "nhúng" thẳng vào từng bảng con.
-Tránh lặp lại bốn trường này ở sáu entity (nguyên tắc DRY).
+các cột `id`, `created_at`, `updated_at`, `created_by`, `updated_by`, `version` được "nhúng"
+thẳng vào từng bảng con. Tránh lặp lại sáu trường này ở chín entity (nguyên tắc DRY).
+
+`created_by` / `updated_by` do **Spring Data JPA Auditing** tự điền qua `AuditorAware`
+(xem `config/JpaAuditingConfig`). Hiện tại hệ thống chưa có xác thực nên người thao tác lấy
+từ header `X-User`, mặc định là `system`. Khi bổ sung Spring Security, chỉ cần đổi thân của
+`AuditorAware` sang đọc `SecurityContextHolder` — **không phải sửa bất kỳ entity nào**.
 
 ### 3.3. Vì sao có cột `version`?
 
@@ -241,7 +292,37 @@ thống nên được đặt tên tường minh trong `@UniqueConstraint(name = 
 Lưu ý: tầng Service **vẫn kiểm tra trùng trước khi ghi** để trả về thông báo lỗi thân thiện;
 ràng buộc ở CSDL là **chốt chặn cuối cùng** cho trường hợp hai request chạy đồng thời.
 
-### 3.7. Vì sao lưu enum dạng `STRING` chứ không phải `ORDINAL`?
+### 3.7. Vì sao điểm trung bình đánh giá **không** lưu trên bảng `courses`?
+
+Lưu sẵn `average_rating` trên `courses` sẽ nhanh khi đọc, nhưng tạo ra **dữ liệu trùng lặp**:
+cùng một sự thật được ghi ở hai nơi. Chỉ cần một đường ghi quên cập nhật (xóa đánh giá, sửa
+điểm, nhập liệu trực tiếp vào DB) là hai con số lệch nhau vĩnh viễn và không có cách nào biết
+bên nào đúng.
+
+Hệ thống tính điểm bằng **truy vấn gộp** `AVG(rating) GROUP BY course_id`. Cả trang danh sách
+chỉ tốn thêm **một** truy vấn, không phụ thuộc số dòng. Khi nào bảng `reviews` lớn tới mức
+truy vấn gộp trở thành nút thắt thì mới cân nhắc lưu sẵn — và lúc đó phải kèm cơ chế đồng bộ
+(trigger, event, hoặc tính lại định kỳ).
+
+### 3.8. Vì sao `certificates` lưu lại `student_name` và `course_title`?
+
+Đây là **cố ý** phá vỡ chuẩn hóa. Chứng chỉ là giấy tờ **đã phát hành ra ngoài** — học viên
+có thể đã tải về, in ra, gửi cho nhà tuyển dụng. Nếu sau này khóa học đổi tên hoặc học viên
+đổi họ tên, bản chứng chỉ tra cứu online mà đổi theo thì sẽ không khớp bản đã phát hành.
+
+Vì vậy hai trường này được "chụp" lại tại thời điểm cấp. Đây là kiểu dữ liệu *snapshot* — cùng
+lý do với việc hóa đơn lưu lại giá bán tại thời điểm mua thay vì tham chiếu tới giá hiện tại.
+
+### 3.9. Vì sao `audit_logs` không có khóa ngoại?
+
+Nhật ký phải sống lâu hơn dữ liệu nó ghi lại. Nếu đặt khóa ngoại tới `courses`, thì hoặc là
+không xóa được khóa học, hoặc là xóa khóa học sẽ xóa luôn nhật ký về nó — cả hai đều làm mất
+ý nghĩa của nhật ký. Vì vậy bảng chỉ lưu `entity_name` + `entity_id` dạng phẳng.
+
+Đổi lại, hai chỉ mục `idx_audit_entity (entity_name, entity_id)` và `idx_audit_action (action)`
+được tạo tường minh để tra cứu vẫn nhanh khi bảng lớn dần.
+
+### 3.10. Vì sao lưu enum dạng `STRING` chứ không phải `ORDINAL`?
 
 `@Enumerated(EnumType.STRING)` lưu giá trị `"PUBLISHED"` thay vì số thứ tự `1`. Nếu lưu
 `ORDINAL`, chỉ cần chèn thêm một hằng số vào giữa danh sách enum là **toàn bộ dữ liệu cũ bị
@@ -259,6 +340,9 @@ diễn giải sai**. Lưu chuỗi cũng giúp đọc dữ liệu trực tiếp t
 | `categories` | `UNIQUE (name)` | ràng buộc unique |
 | `instructors`, `students` | `UNIQUE (email)` | ràng buộc unique |
 | `enrollments` | `UNIQUE (student_id, course_id)` | ràng buộc nghiệp vụ — cũng phục vụ truy vấn theo `student_id` |
+| `reviews` | `UNIQUE (student_id, course_id)` | ràng buộc nghiệp vụ chống đánh giá trùng |
+| `certificates` | `UNIQUE (enrollment_id)`, `UNIQUE (code)` | một ghi danh một chứng chỉ; mã tra cứu không trùng |
+| `audit_logs` | `INDEX (entity_name, entity_id)`, `INDEX (action)` | khai báo tường minh trong `@Table(indexes = …)` |
 | `courses` | index trên `category_id`, `instructor_id` | MySQL tự tạo cho khóa ngoại |
 
 **Đề xuất khi dữ liệu lớn** (chưa áp dụng — xem phần "Hướng phát triển" của báo cáo):

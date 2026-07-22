@@ -23,6 +23,19 @@
 
 ---
 
+## 1b. Tính năng nâng cao
+
+| Tính năng | Mô tả | Cơ chế Spring |
+|---|---|---|
+| **Đánh giá & xếp hạng** | Học viên đã ghi danh chấm 1–5 sao kèm nhận xét; điểm trung bình tính bằng truy vấn gộp, có bảng xếp hạng | JPA aggregate query, ràng buộc `UNIQUE(student_id, course_id)` |
+| **Chứng chỉ hoàn thành** | Đạt 100% tiến độ → cấp chứng chỉ với mã tra cứu duy nhất, cấp trong cùng transaction, không cấp trùng | Factory Pattern, `@Transactional`, `@OneToOne` |
+| **Nhắc học định kỳ** | 8h sáng mỗi ngày quét ghi danh không hoạt động quá 7 ngày | `@Scheduled` + `@EnableScheduling` |
+| **Cache** | Danh mục và thống kê dashboard được cache, tự mất hiệu lực khi có thao tác ghi | `@Cacheable` / `@CacheEvict` |
+| **Nhật ký thao tác** | Mọi thao tác ghi ở tầng Service được ghi lại tự động, không chèn code vào Service | Spring AOP `@Aspect` + `@AfterReturning` |
+| **Audit người thao tác** | Cột `created_by` / `updated_by` tự điền trên mọi bảng | Spring Data JPA Auditing + `AuditorAware` |
+
+---
+
 ## 2. Kiến trúc (Layered Architecture)
 
 ```
@@ -110,6 +123,11 @@ mvnw.cmd spring-boot:run          # Windows
 | | `PATCH /api/enrollments/{id}/progress` | Cập nhật tiến độ (100% → COMPLETED) |
 | | `PATCH /api/enrollments/{id}/cancel` | Hủy ghi danh |
 | Categories / Instructors / Students | `GET/POST/PUT/DELETE` | CRUD đầy đủ |
+| Reviews | `POST /api/courses/{id}/reviews` | Đánh giá 1–5 sao (chỉ học viên đã ghi danh) |
+| | `GET /api/courses/top-rated` | Bảng xếp hạng theo điểm trung bình |
+| Certificates | `GET /api/certificates/{code}` | Tra cứu chứng chỉ theo mã |
+| | `GET /api/certificates/students/{id}` | Chứng chỉ của một học viên |
+| Audit Logs | `GET /api/audit-logs` | Nhật ký thao tác (lọc theo thực thể / hành động) |
 
 Mọi response bọc trong `ApiResponse { success, message, data, timestamp }`.
 Lỗi trả về `ErrorResponse { status, error, message, path, fieldErrors }` qua **Global Exception Handling**.
@@ -142,6 +160,7 @@ Lỗi trả về `ErrorResponse { status, error, message, path, fieldErrors }` q
 | [`docs/database-schema.md`](docs/database-schema.md) | Sơ đồ ERD, mô tả chi tiết 6 bảng, ràng buộc, lý do thiết kế, đề xuất chỉ mục |
 | [`docs/architecture.md`](docs/architecture.md) | Sơ đồ tầng, sơ đồ package, sơ đồ tuần tự luồng ghi danh, danh mục API, cấu hình profile, triển khai |
 | [`docs/schema.sql`](docs/schema.sql) | DDL đầy đủ — **sinh trực tiếp từ metadata Hibernate**, không viết tay |
+| [`docs/toi-uu-hieu-nang.md`](docs/toi-uu-hieu-nang.md) | Các lỗi đã sửa kèm **số liệu đo trước/sau**, và các hạn chế đã biết |
 
 Ảnh sơ đồ dùng cho báo cáo: `docs/database-schema.png`, `docs/architecture.png`,
 `docs/architecture-package.png`, `docs/architecture-sequence-enrollment.png`, `docs/deployment.png`.

@@ -8,14 +8,19 @@
 -- Lenh sinh lai file:
 --   ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev \
 --     -Dspring-boot.run.arguments="\
+--        --spring.main.web-application-type=none \
 --        --spring.jpa.properties.jakarta.persistence.schema-generation.scripts.action=create \
 --        --spring.jpa.properties.jakarta.persistence.schema-generation.scripts.create-target=docs/schema.sql \
 --        --spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect"
 --
--- Luu y: ten cac constraint dang `UKxxxx` / `FKxxxx` la ten Hibernate tu
--- sinh khi entity khong dat ten tuong minh. Rieng rang buoc nghiep vu quan
--- trong nhat - `uk_enrollment_student_course` - duoc dat ten tuong minh
--- trong `Enrollment.java` de doc log loi de hieu.
+-- Luu y: ten constraint dang `UKxxxx` / `FKxxxx` la ten Hibernate tu sinh
+-- khi entity khong dat ten tuong minh. Cac rang buoc nghiep vu quan trong
+-- (`uk_enrollment_student_course`, `uk_review_student_course`,
+-- `uk_certificate_enrollment`, `uk_certificate_code`) deu duoc dat ten
+-- tuong minh trong entity de doc log loi de hieu.
+--
+-- Moi bang deu ke thua BaseEntity nen co chung 6 cot ky thuat:
+--   id, created_at, updated_at, created_by, updated_by, version
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -27,6 +32,8 @@ create table categories (
     description varchar(500),
     created_at  datetime(6)  not null,
     updated_at  datetime(6),
+    created_by  varchar(100),
+    updated_by  varchar(100),
     version     bigint,
     primary key (id)
 ) engine=InnoDB;
@@ -42,6 +49,8 @@ create table instructors (
     bio        varchar(1000),
     created_at datetime(6)   not null,
     updated_at datetime(6),
+    created_by varchar(100),
+    updated_by varchar(100),
     version    bigint,
     primary key (id)
 ) engine=InnoDB;
@@ -56,6 +65,8 @@ create table students (
     phone      varchar(20),
     created_at datetime(6)  not null,
     updated_at datetime(6),
+    created_by varchar(100),
+    updated_by varchar(100),
     version    bigint,
     primary key (id)
 ) engine=InnoDB;
@@ -76,6 +87,8 @@ create table courses (
     instructor_id  bigint        not null,
     created_at     datetime(6)   not null,
     updated_at     datetime(6),
+    created_by     varchar(100),
+    updated_by     varchar(100),
     version        bigint,
     primary key (id)
 ) engine=InnoDB;
@@ -92,6 +105,8 @@ create table lessons (
     course_id        bigint        not null,
     created_at       datetime(6)   not null,
     updated_at       datetime(6),
+    created_by       varchar(100),
+    updated_by       varchar(100),
     version          bigint,
     primary key (id)
 ) engine=InnoDB;
@@ -109,9 +124,70 @@ create table enrollments (
     completed_at     datetime(6),
     created_at       datetime(6) not null,
     updated_at       datetime(6),
+    created_by       varchar(100),
+    updated_by       varchar(100),
     version          bigint,
     primary key (id)
 ) engine=InnoDB;
+
+-- ---------------------------------------------------------------------
+-- 7. reviews - Danh gia khoa hoc (1-5 sao)
+-- ---------------------------------------------------------------------
+create table reviews (
+    id         bigint        not null auto_increment,
+    student_id bigint        not null,
+    course_id  bigint        not null,
+    rating     integer       not null,
+    comment    varchar(1000),
+    created_at datetime(6)   not null,
+    updated_at datetime(6),
+    created_by varchar(100),
+    updated_by varchar(100),
+    version    bigint,
+    primary key (id)
+) engine=InnoDB;
+
+-- ---------------------------------------------------------------------
+-- 8. certificates - Chung chi hoan thanh khoa hoc
+-- ---------------------------------------------------------------------
+create table certificates (
+    id            bigint       not null auto_increment,
+    enrollment_id bigint       not null,
+    code          varchar(60)  not null,
+    issued_at     datetime(6)  not null,
+    student_name  varchar(150) not null,
+    course_title  varchar(200) not null,
+    created_at    datetime(6)  not null,
+    updated_at    datetime(6),
+    created_by    varchar(100),
+    updated_by    varchar(100),
+    version       bigint,
+    primary key (id)
+) engine=InnoDB;
+
+-- ---------------------------------------------------------------------
+-- 9. audit_logs - Nhat ky thao tac (chi ghi va doc, khong sua)
+-- ---------------------------------------------------------------------
+create table audit_logs (
+    id          bigint       not null auto_increment,
+    entity_name varchar(60)  not null,
+    entity_id   bigint,
+    action      enum ('CREATE','UPDATE','DELETE','PUBLISH','ARCHIVE','ENROLL','CANCEL') not null,
+    actor       varchar(100) not null,
+    detail      varchar(500),
+    created_at  datetime(6)  not null,
+    updated_at  datetime(6),
+    created_by  varchar(100),
+    updated_by  varchar(100),
+    version     bigint,
+    primary key (id)
+) engine=InnoDB;
+
+-- =====================================================================
+-- CHI MUC (INDEX)
+-- =====================================================================
+create index idx_audit_entity on audit_logs (entity_name, entity_id);
+create index idx_audit_action on audit_logs (action);
 
 -- =====================================================================
 -- RANG BUOC DUY NHAT (UNIQUE)
@@ -125,11 +201,20 @@ alter table instructors
 alter table students
     add constraint UKe2rndfrsx22acpq2ty1caeuyw unique (email);
 
--- Rang buoc nghiep vu: mot hoc vien chi co dung MOT ban ghi ghi danh
--- cho moi khoa hoc. Day la chot chan cuoi cung o tang CSDL, ben canh
--- kiem tra o tang Service.
+-- Mot hoc vien chi co dung MOT ban ghi ghi danh cho moi khoa hoc
 alter table enrollments
     add constraint uk_enrollment_student_course unique (student_id, course_id);
+
+-- Mot hoc vien chi danh gia MOT lan cho moi khoa hoc
+alter table reviews
+    add constraint uk_review_student_course unique (student_id, course_id);
+
+-- Mot ghi danh chi duoc cap MOT chung chi; ma chung chi khong trung
+alter table certificates
+    add constraint uk_certificate_enrollment unique (enrollment_id);
+
+alter table certificates
+    add constraint uk_certificate_code unique (code);
 
 -- =====================================================================
 -- KHOA NGOAI (FOREIGN KEY)
@@ -153,3 +238,15 @@ alter table enrollments
 alter table enrollments
     add constraint FKho8mcicp4196ebpltdn9wl6co
     foreign key (course_id) references courses (id);
+
+alter table reviews
+    add constraint FKfm8jxphx9i3qes8demb91pa7e
+    foreign key (student_id) references students (id);
+
+alter table reviews
+    add constraint FKccbfc9u1qimejr5ll7yuxbtqs
+    foreign key (course_id) references courses (id);
+
+alter table certificates
+    add constraint FKjy46ubyh2tf64mgos6jgpcx4u
+    foreign key (enrollment_id) references enrollments (id);

@@ -54,15 +54,17 @@ CSDL → Entity → (Mapper) → ResponseDTO → Response JSON
 flowchart LR
     subgraph root["com.university.coursemanagement"]
         direction TB
-        C["<b>controller</b><br/>6 REST controller"]
-        S["<b>service</b> + <b>service.impl</b><br/>6 interface + 6 implementation"]
-        R["<b>repository</b><br/>6 repository + CourseSpecifications"]
-        E["<b>entity</b> + <b>entity.enums</b><br/>BaseEntity + 6 entity + 3 enum"]
+        C["<b>controller</b><br/>9 REST controller"]
+        S["<b>service</b> + <b>service.impl</b><br/>9 interface + 9 implementation"]
+        R["<b>repository</b><br/>9 repository + CourseSpecifications"]
+        E["<b>entity</b> + <b>entity.enums</b><br/>BaseEntity + 9 entity + 4 enum"]
         D["<b>dto.request</b> · <b>dto.response</b> · <b>dto.mapper</b>"]
         X["<b>exception</b><br/>GlobalExceptionHandler<br/>BusinessException · ResourceNotFound<br/>DuplicateResource · ErrorResponse"]
-        F["<b>factory</b><br/>EnrollmentFactory"]
+        F["<b>factory</b><br/>EnrollmentFactory · CertificateFactory"]
         M["<b>common</b><br/>ApiResponse · PageResponse"]
-        G["<b>config</b><br/>OpenApiConfig · DataSeeder"]
+        G["<b>config</b><br/>OpenApiConfig · DataSeeder<br/>CacheConfig · JpaAuditingConfig<br/>SchedulingConfig"]
+        AS["<b>aspect</b><br/>AuditAspect (AOP)"]
+        SC["<b>scheduler</b><br/>EnrollmentReminderScheduler"]
     end
 
     C --> S --> R --> E
@@ -71,6 +73,8 @@ flowchart LR
     S -.-> F
     C -.-> M
     X -.-> M
+    AS -.-> S
+    SC -.-> R
 ```
 
 | Package | Trách nhiệm |
@@ -83,9 +87,11 @@ flowchart LR
 | `dto.response` | Dữ liệu ra, chỉ chứa trường cần hiển thị |
 | `dto.mapper` | Chuyển đổi Entity ↔ DTO, là bean Spring nên tiêm được vào Service |
 | `exception` | Exception nghiệp vụ + `@RestControllerAdvice` xử lý lỗi tập trung |
-| `factory` | `EnrollmentFactory` — Factory Pattern, tập trung quy tắc khởi tạo bản ghi ghi danh |
+| `factory` | Factory Pattern — `EnrollmentFactory` (khởi tạo ghi danh), `CertificateFactory` (sinh mã chứng chỉ) |
+| `aspect` | `AuditAspect` — ghi nhật ký thao tác bằng AOP, không chèn code vào Service |
+| `scheduler` | `EnrollmentReminderScheduler` — job `@Scheduled` nhắc học viên lâu không hoạt động |
 | `common` | `ApiResponse` (bao phản hồi thống nhất), `PageResponse` (bao kết quả phân trang) |
-| `config` | `OpenApiConfig` (metadata Swagger), `DataSeeder` (nạp dữ liệu mẫu profile `dev`) |
+| `config` | `OpenApiConfig` (Swagger), `DataSeeder` (dữ liệu mẫu profile `dev`), `CacheConfig` (`@EnableCaching`), `JpaAuditingConfig` (`@EnableJpaAuditing`), `SchedulingConfig` (`@EnableScheduling`) |
 
 ---
 
@@ -128,10 +134,10 @@ sequenceDiagram
     HB->>DB: thực thi SQL
     DB-->>SV: Student (hoặc rỗng → ResourceNotFoundException)
 
-    SV->>CR: findById(courseId)
-    CR->>HB: SELECT * FROM courses WHERE id = ?
-    HB->>DB: thực thi SQL
-    DB-->>SV: Course
+    SV->>CR: findByIdForUpdate(courseId)
+    CR->>HB: SELECT * FROM courses WHERE id = ? FOR UPDATE
+    HB->>DB: khóa ghi bi quan trên hàng Course
+    DB-->>SV: Course (các giao dịch ghi danh khác phải chờ)
 
     Note over SV: Kiểm tra quy tắc nghiệp vụ
     SV->>SV: 1. course.isPublished()?
@@ -181,6 +187,12 @@ sequenceDiagram
 | 4 | Chưa có bản ghi ghi danh `ACTIVE`/`COMPLETED` | `400` — "Học viên đã ghi danh khóa học này" |
 | 5 | Số học viên `ACTIVE` phải nhỏ hơn `capacity` | `400` — "Khóa học đã đầy (n/m)" |
 
+**Vì sao khóa bi quan ở bước nạp `Course`?** Bước 5 là kiểm tra dạng "đếm rồi mới ghi" — hai
+bước tách rời. Không có khóa, hai request đồng thời vào chỗ trống cuối cùng đều đếm thấy "còn
+chỗ" và đều ghi thành công. `@Version` **không** cứu được vì nó chỉ bảo vệ việc ghi đè trên
+chính bản ghi `Course`, trong khi luồng này không `UPDATE` dòng `Course` nào. Số liệu đo được
+xem tại [`toi-uu-hieu-nang.md`](./toi-uu-hieu-nang.md).
+
 **Vì sao kiểm tra ở Service mà không ở Controller?** Controller chỉ chịu trách nhiệm về giao
 thức HTTP. Quy tắc nghiệp vụ đặt ở Service để có thể tái sử dụng khi gọi từ nơi khác (job định
 kỳ, import hàng loạt, giao diện khác) và để nằm trọn trong ranh giới transaction — nếu một quy
@@ -188,7 +200,37 @@ tắc thất bại, toàn bộ thay đổi được rollback, không để lại
 
 ---
 
-## 4. Xử lý lỗi tập trung
+## 4. Thành phần xuyên suốt (cross-cutting)
+
+Ba cơ chế dưới đây hoạt động **không cần sửa tầng Service**, nhờ proxy do Spring tạo.
+
+| Cơ chế | Kích hoạt bởi | Chạy khi nào | Áp dụng ở đâu |
+|---|---|---|---|
+| **Cache** | `@EnableCaching` + `@Cacheable` / `@CacheEvict` | Trước khi vào phương thức: có cache thì trả luôn, không gọi Service | `CategoryServiceImpl.getAllSimple`, `CourseServiceImpl.getStatistics` |
+| **Audit log (AOP)** | `@Aspect` + `@AfterReturning` | Sau khi phương thức ghi chạy xong **và** giao dịch đã commit | Mọi `*ServiceImpl` có phương thức `create*`/`update*`/`delete*`/`publish*`/`archive*`/`enroll*`/`cancel*` |
+| **JPA Auditing** | `@EnableJpaAuditing` + `AuditorAware` | Khi Hibernate lưu entity | `created_by` / `updated_by` trên mọi bảng |
+| **Job định kỳ** | `@EnableScheduling` + `@Scheduled` | 8h sáng mỗi ngày | `EnrollmentReminderScheduler` |
+
+### Thứ tự các lớp proxy
+
+```
+Request
+  → AuditAspect        (@Order(1) — ngoài cùng)
+    → Cache proxy      (@Cacheable / @CacheEvict)
+      → Transaction proxy (@Transactional)
+        → phương thức Service thật
+```
+
+`AuditAspect` đặt `@Order(1)` để nằm **ngoài** proxy giao dịch (proxy giao dịch có độ ưu tiên
+thấp nhất). Nhờ vậy `@AfterReturning` chỉ chạy sau khi giao dịch nghiệp vụ đã commit thành công
+— không ghi nhật ký cho thao tác bị cuộn ngược.
+
+`AuditLogService.record` lại chạy trong giao dịch **riêng** (`REQUIRES_NEW`): nhật ký là dữ liệu
+quan sát, không được phép làm hỏng nghiệp vụ.
+
+---
+
+## 5. Xử lý lỗi tập trung
 
 `GlobalExceptionHandler` được đánh dấu `@RestControllerAdvice`. Spring bọc mọi Controller bằng
 cơ chế này: khi một exception thoát ra khỏi Controller, Spring tìm phương thức `@ExceptionHandler`
@@ -207,9 +249,9 @@ Lợi ích: Controller không cần `try/catch`, định dạng lỗi thống nh
 
 ---
 
-## 5. Danh mục API
+## 6. Danh mục API
 
-Tổng cộng **33 endpoint** chia theo 6 nhóm tài nguyên. Tài liệu tương tác tại
+Tổng cộng **42 endpoint** chia theo 9 nhóm tài nguyên. Tài liệu tương tác tại
 `http://localhost:8080/swagger-ui.html`.
 
 | Nhóm | Đường dẫn gốc | Số endpoint | Chức năng chính |
@@ -220,6 +262,9 @@ Tổng cộng **33 endpoint** chia theo 6 nhóm tài nguyên. Tài liệu tươn
 | Courses | `/api/courses` | 8 | CRUD, tìm kiếm có lọc động, `/statistics`, `publish`, `archive` |
 | Lessons | `/api/courses/{id}/lessons`, `/api/lessons/{id}` | 4 | Quản lý bài học trong khóa |
 | Enrollments | `/api/enrollments` | 5 | Ghi danh, xem theo học viên/khóa học, cập nhật tiến độ, hủy |
+| Reviews | `/api/courses/{id}/reviews`, `/api/reviews/{id}`, `/api/courses/top-rated` | 5 | Đánh giá 1–5 sao, danh sách đánh giá, bảng xếp hạng |
+| Certificates | `/api/certificates` | 3 | Tra cứu chứng chỉ theo mã / học viên / ghi danh |
+| Audit Logs | `/api/audit-logs` | 1 | Nhật ký thao tác (chỉ đọc, có lọc và phân trang) |
 
 **Quy ước chung:**
 
@@ -230,7 +275,7 @@ Tổng cộng **33 endpoint** chia theo 6 nhóm tài nguyên. Tài liệu tươn
 
 ---
 
-## 6. Công nghệ sử dụng
+## 7. Công nghệ sử dụng
 
 | Thành phần | Công nghệ | Vai trò |
 |---|---|---|
@@ -241,6 +286,9 @@ Tổng cộng **33 endpoint** chia theo 6 nhóm tài nguyên. Tài liệu tươn
 | Kiểm tra dữ liệu | Jakarta Bean Validation | `@NotBlank`, `@Email`, `@Min`, `@Max` trên DTO |
 | Tài liệu API | springdoc-openapi | Sinh OpenAPI 3 + Swagger UI |
 | Giám sát | Spring Boot Actuator | `/actuator/health` cho Docker healthcheck |
+| AOP | Spring AOP (`spring-boot-starter-aop`) | Ghi nhật ký thao tác không xâm lấn |
+| Cache | Spring Cache (`spring-boot-starter-cache`) | `@Cacheable` / `@CacheEvict` |
+| Job định kỳ | Spring Scheduling | `@Scheduled` nhắc học viên |
 | Tiện ích | Lombok | `@Getter`, `@Builder` — giảm mã lặp |
 | CSDL | H2 (dev) · MySQL 8 (prod) | |
 | Build | Maven + Maven Wrapper | Chạy được không cần cài Maven sẵn |
@@ -250,7 +298,7 @@ Tổng cộng **33 endpoint** chia theo 6 nhóm tài nguyên. Tài liệu tươn
 
 ---
 
-## 7. Cấu hình theo môi trường (Spring Profiles)
+## 8. Cấu hình theo môi trường (Spring Profiles)
 
 | Cấu hình | `dev` | `prod` |
 |---|---|---|
@@ -278,7 +326,7 @@ Entity mà chỉ nhận DTO đã hoàn chỉnh.
 
 ---
 
-## 8. Triển khai
+## 9. Triển khai
 
 ```mermaid
 flowchart LR
