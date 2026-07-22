@@ -145,20 +145,38 @@ khóa học, cách cũ nạp 10 000 đối tượng Java vào heap; cách mới 
 
 ---
 
-## 6. Hạn chế đã biết — chưa xử lý (chủ ý)
+## 6. Kiểm chứng đường triển khai thật (Docker Compose + MySQL)
+
+Toàn bộ hệ thống được chạy thử ở profile `prod` với MySQL 8 trong container, không phải H2:
+
+| Bước kiểm chứng | Kết quả |
+|---|---|
+| `docker compose up --build` từ trạng thái sạch (`down -v`) | MySQL `healthy` → app khởi động → `/actuator/health` trả `{"status":"UP"}` |
+| Thứ tự khởi động | App **không** khởi động trước khi MySQL sẵn sàng, nhờ `depends_on: condition: service_healthy` |
+| Mật khẩu | Đọc từ `.env`, không nằm trong file được commit. Healthcheck của MySQL cũng dùng biến môi trường thay vì nhúng mật khẩu vào lệnh |
+| Dữ liệu bền vững | Tạo một danh mục qua API → `docker compose restart app` → gọi lại API, **dữ liệu vẫn còn** (volume `mysql_data`) |
+| `docker compose ps` | Cả hai container ở trạng thái `Up (healthy)` |
+
+Điểm khác biệt cần nêu khi trình bày: ở profile `dev` dùng H2 in-memory với `ddl-auto: create-drop`
+nên **mất sạch dữ liệu** mỗi lần tắt ứng dụng; ở profile `prod` dùng MySQL với volume nên dữ liệu
+sống qua các lần khởi động lại. Đây là lý do có hai profile chứ không phải chỉ để đổi chuỗi kết nối.
+
+---
+
+## 7. Hạn chế đã biết — chưa xử lý (chủ ý)
 
 | Hạn chế | Lý do giữ nguyên | Giải pháp đúng |
 |---|---|---|
 | `ddl-auto: update` ở profile `prod` | Phạm vi đồ án; thêm công cụ migration sẽ kéo theo chi phí bảo trì cho các bảng sẽ thêm ở giai đoạn sau | **Flyway** / Liquibase, đổi `ddl-auto` thành `validate` |
 | Phân trang dùng `OFFSET` | Dữ liệu đồ án nhỏ, `OFFSET` đủ dùng và đơn giản | **Keyset pagination** khi bảng vượt vài triệu dòng |
 | Chưa có index cho `courses.status`, `enrollments(course_id, status)` | Dữ liệu nhỏ, chưa đo được lợi ích | Thêm index khi có số liệu thực tế chứng minh |
-| **Danh tính người dùng lấy từ request** (`studentId` nằm trong body/URL) | Hệ thống chưa có xác thực — đây là hệ quả trực tiếp, không phải sơ suất riêng lẻ | Xem mục 7 bên dưới |
+| **Danh tính người dùng lấy từ request** (`studentId` nằm trong body/URL) | Hệ thống chưa có xác thực — đây là hệ quả trực tiếp, không phải sơ suất riêng lẻ | Xem mục 8 bên dưới |
 
 Các hạn chế này được nêu rõ để **hiểu và giải thích được**, không phải để giấu đi.
 
 ---
 
-## 7. Hạn chế bảo mật quan trọng nhất: chưa có xác thực
+## 8. Hạn chế bảo mật quan trọng nhất: chưa có xác thực
 
 **Hiện trạng.** Toàn bộ hệ thống không có đăng nhập. Mọi endpoint nhận danh tính người dùng
 **từ chính request**:

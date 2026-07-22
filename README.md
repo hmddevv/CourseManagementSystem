@@ -1,5 +1,7 @@
 # Hệ thống quản lý khóa học (Course Management System)
 
+[![CI](https://github.com/hmddevv/CourseManagementSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/hmddevv/CourseManagementSystem/actions/workflows/ci.yml)
+
 > Đồ án cuối kỳ — **Lập trình ứng dụng với Java (14113014)** — HK3 2025-2026
 > Đề tài STT 4: *Hệ thống quản lý khóa học*.
 
@@ -89,11 +91,21 @@ com.university.coursemanagement
 
 ### Cách A — Docker Compose (khuyến khích, gồm MySQL)
 ```bash
+cp .env.example .env      # rồi đổi mật khẩu trong .env
 docker compose up --build
 ```
 - Ứng dụng: <http://localhost:8080>
 - Swagger UI: <http://localhost:8080/swagger-ui.html>
 - Chạy ở profile `prod` (MySQL). Dữ liệu MySQL lưu ở volume `mysql_data`.
+- Container ứng dụng chỉ khởi động sau khi MySQL báo `healthy` (`depends_on: service_healthy`).
+- Mọi thông tin đăng nhập đọc từ `.env` — file này **không** được commit.
+
+Kiểm chứng dữ liệu bền vững (khác hẳn H2 in-memory ở profile `dev`):
+```bash
+curl -X POST localhost:8080/api/categories -H "Content-Type: application/json" -d '{"name":"Test"}'
+docker compose restart app
+curl localhost:8080/api/categories/all     # dữ liệu vẫn còn
+```
 
 ### Cách B — Chạy nhanh bằng H2 (profile dev, không cần DB ngoài)
 ```bash
