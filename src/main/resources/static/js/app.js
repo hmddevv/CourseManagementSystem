@@ -41,6 +41,12 @@ function toast(msg, type = "success") {
 const money = (n) => (n == null ? "0" : Number(n).toLocaleString("vi-VN")) + "đ";
 const esc = (s) => (s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])));
 const badge = (v, extra = "") => `<span class="badge ${extra} ${esc(v)}">${esc(v)}</span>`;
+/** Hien thi diem danh gia dang sao, vi du 4.5 -> "★★★★☆ 4.5 (12)". */
+const stars = (avg, count) => {
+    if (!count) return `<span class="muted">chưa có</span>`;
+    const filled = Math.round(avg);
+    return `<span class="stars" title="${avg}/5 từ ${count} đánh giá">${"★".repeat(filled)}${"☆".repeat(5 - filled)}</span> ${avg} <span class="muted">(${count})</span>`;
+};
 
 /* ---------- Modal ---------- */
 const Modal = {
@@ -55,6 +61,10 @@ const Modal = {
         if (e && e.target && e.target.id !== "modal-overlay" && e.type === "click" && e.currentTarget.id === "modal-overlay") return;
         document.getElementById("modal-overlay").classList.remove("open");
         this._submit = null;
+    },
+    /** Modal chi de xem, khong co form gui di (vi du: xem chung chi). */
+    info(title, html) {
+        this.open(title, html, null);
     },
     val(name) { const el = document.querySelector(`#modal-form [name="${name}"]`); return el ? el.value : null; },
     async submit() {
@@ -140,16 +150,18 @@ const CourseUI = {
                 <td>${badge(c.status)}</td>
                 <td>${money(c.price)}</td>
                 <td>${c.activeEnrollments}/${c.capacity}<br><span class="muted">${c.lessonCount} bài</span></td>
+                <td>${stars(c.averageRating, c.reviewCount)}</td>
                 <td><div class="actions">
                     ${c.status === "DRAFT" ? `<button class="btn sm primary" onclick="CourseUI.publish(${c.id})">Xuất bản</button>` : ""}
                     ${c.status === "PUBLISHED" ? `<button class="btn sm" onclick="CourseUI.archive(${c.id})">Lưu trữ</button>` : ""}
                     <button class="btn sm" onclick="CourseUI.lessons(${c.id})">Bài học</button>
+                    <button class="btn sm" onclick="ReviewUI.open(${c.id})">Đánh giá</button>
                     <button class="btn sm" onclick="CourseUI.openForm(${c.id})">Sửa</button>
                     <button class="btn sm danger" onclick="CourseUI.remove(${c.id})">Xóa</button>
                 </div></td>
             </tr>`).join("");
         document.getElementById("courses-table").innerHTML = pg.content.length ? `
-            <table><thead><tr><th>Khóa học</th><th>Trình độ</th><th>Trạng thái</th><th>Giá</th><th>Ghi danh</th><th>Thao tác</th></tr></thead>
+            <table><thead><tr><th>Khóa học</th><th>Trình độ</th><th>Trạng thái</th><th>Giá</th><th>Ghi danh</th><th>Đánh giá</th><th>Thao tác</th></tr></thead>
             <tbody>${rows}</tbody></table>` : `<div class="empty">Không có khóa học nào</div>`;
         this.renderPager(pg);
     },
@@ -242,6 +254,7 @@ const EnrollUI = {
                     <td>${e.enrolledAt ? e.enrolledAt.substring(0, 10) : ""}</td>
                     <td><div class="actions">
                         <button class="btn sm" onclick="EnrollUI.progress(${e.id}, ${e.progressPercent})">Tiến độ</button>
+                        ${e.status === "COMPLETED" ? `<button class="btn sm" onclick="EnrollUI.certificate(${e.id})">Chứng chỉ</button>` : ""}
                         ${e.status !== "CANCELLED" ? `<button class="btn sm danger" onclick="EnrollUI.cancel(${e.id})">Hủy</button>` : ""}
                     </div></td>
                 </tr>`).join("");
@@ -270,7 +283,101 @@ const EnrollUI = {
             toast("Đã cập nhật"); this.reload();
         });
     },
-    async cancel(id) { if (!confirm("Hủy ghi danh này?")) return; try { await api.patch(`/enrollments/${id}/cancel`); toast("Đã hủy"); this.reload(); } catch (e) { toast(e.message, "error"); } }
+    async cancel(id) { if (!confirm("Hủy ghi danh này?")) return; try { await api.patch(`/enrollments/${id}/cancel`); toast("Đã hủy"); this.reload(); } catch (e) { toast(e.message, "error"); } },
+
+    /** Chung chi duoc cap tu dong khi tien do dat 100%, khong cap thu cong. */
+    async certificate(enrollmentId) {
+        try {
+            const c = await api.get(`/certificates/enrollments/${enrollmentId}`);
+            Modal.info("Chứng chỉ hoàn thành", `
+                <div class="certificate">
+                    <div class="cert-code">${esc(c.code)}</div>
+                    <p>Chứng nhận <strong>${esc(c.studentName)}</strong></p>
+                    <p>đã hoàn thành khóa học <strong>${esc(c.courseTitle)}</strong></p>
+                    <p class="muted">Cấp ngày ${c.issuedAt ? c.issuedAt.substring(0, 10) : ""}</p>
+                </div>`);
+        } catch (e) { toast("Ghi danh này chưa có chứng chỉ", "error"); }
+    }
+};
+
+/* ============================================================
+   REVIEWS - danh gia khoa hoc va bang xep hang
+   ============================================================ */
+const ReviewUI = {
+    /** Xem danh sach danh gia cua mot khoa hoc va gui danh gia moi. */
+    async open(courseId) {
+        try {
+            const [course, page, students] = await Promise.all([
+                api.get("/courses/" + courseId),
+                api.get(`/courses/${courseId}/reviews?size=50`),
+                api.get("/students/all")
+            ]);
+            const list = page.content.length
+                ? page.content.map(r => `<div class="popular-item">
+                        <span><strong>${esc(r.studentName)}</strong> ${stars(r.rating, 1)}<br>
+                        <span class="muted">${esc(r.comment) || "(không có nhận xét)"}</span></span></div>`).join("")
+                : `<div class="empty">Chưa có đánh giá nào</div>`;
+
+            Modal.open("Đánh giá: " + course.title,
+                `<div style="display:flex;flex-direction:column;gap:8px">${list}</div>
+                 <hr style="margin:14px 0;border:none;border-top:1px solid #eee">
+                 ${field("Học viên", "rvStudent", "select", "", students.map(s => ({ value: s.id, label: s.fullName })))}
+                 ${field("Điểm", "rvRating", "select", 5, [5, 4, 3, 2, 1].map(v => ({ value: v, label: "★".repeat(v) })))}
+                 ${field("Nhận xét", "rvComment", "textarea", "")}`,
+                async () => {
+                    await api.post(`/courses/${courseId}/reviews`, {
+                        studentId: Number(Modal.val("rvStudent")),
+                        rating: Number(Modal.val("rvRating")),
+                        comment: Modal.val("rvComment")
+                    });
+                    toast("Đã gửi đánh giá");
+                    CourseUI.load();
+                });
+        } catch (e) { toast(e.message, "error"); }
+    }
+};
+
+const RankingUI = {
+    async load() {
+        try {
+            const pg = await api.get("/courses/top-rated?size=20");
+            const rows = pg.content.map((c, i) => `<tr>
+                <td><strong>#${i + 1}</strong></td>
+                <td><strong>${esc(c.title)}</strong><br><span class="muted">${esc(c.categoryName)} · ${esc(c.instructorName)}</span></td>
+                <td>${stars(c.averageRating, c.reviewCount)}</td>
+            </tr>`).join("");
+            document.getElementById("ranking-table").innerHTML = pg.content.length
+                ? `<table><thead><tr><th>Hạng</th><th>Khóa học</th><th>Điểm trung bình</th></tr></thead><tbody>${rows}</tbody></table>`
+                : `<div class="empty">Chưa có khóa học nào được đánh giá</div>`;
+        } catch (e) { toast(e.message, "error"); }
+    }
+};
+
+/* ============================================================
+   AUDIT LOG - nhat ky thao tac (chi doc)
+   ============================================================ */
+const AuditUI = {
+    load() { this.reload(); },
+    async reload() {
+        const entity = document.getElementById("audit-entity").value;
+        const action = document.getElementById("audit-action").value;
+        const params = new URLSearchParams({ size: 50, sort: "createdAt,desc" });
+        if (entity) params.set("entityName", entity);
+        if (action) params.set("action", action);
+        try {
+            const pg = await api.get("/audit-logs?" + params.toString());
+            const rows = pg.content.map(l => `<tr>
+                <td class="muted">${l.createdAt ? l.createdAt.substring(0, 19).replace("T", " ") : ""}</td>
+                <td>${badge(l.action)}</td>
+                <td><strong>${esc(l.entityName)}</strong>${l.entityId ? " #" + l.entityId : ""}</td>
+                <td>${esc(l.actor)}</td>
+                <td class="muted">${esc(l.detail)}</td>
+            </tr>`).join("");
+            document.getElementById("audit-table").innerHTML = pg.content.length
+                ? `<table><thead><tr><th>Thời điểm</th><th>Hành động</th><th>Đối tượng</th><th>Người thực hiện</th><th>Chi tiết</th></tr></thead><tbody>${rows}</tbody></table>`
+                : `<div class="empty">Chưa có nhật ký nào</div>`;
+        } catch (e) { toast(e.message, "error"); }
+    }
 };
 
 /* ============================================================
@@ -346,6 +453,8 @@ const Router = {
     dashboard: () => Dashboard.load(),
     courses: () => CourseUI.load(),
     enrollments: () => EnrollUI.load(),
+    ranking: () => RankingUI.load(),
+    audit: () => AuditUI.load(),
     categories: () => CategoryUI.load(),
     instructors: () => InstructorUI.load(),
     students: () => StudentUI.load(),

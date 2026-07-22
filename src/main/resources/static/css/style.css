@@ -114,3 +114,11 @@ tr:hover td { background: #fafafe; }
 
 .muted { color: var(--muted); font-size: 13px; }
 .empty { text-align: center; padding: 40px; color: var(--muted); }
+
+/* Danh gia sao */
+.stars { color: #f59e0b; letter-spacing: 1px; }
+
+/* Chung chi */
+.certificate { border: 3px double var(--border); border-radius: 12px; padding: 28px 20px; text-align: center; }
+.certificate p { margin: 6px 0; }
+.cert-code { font-family: ui-monospace, "Courier New", monospace; font-size: 15px; letter-spacing: 1px; background: #f3f4f6; display: inline-block; padding: 6px 14px; border-radius: 8px; margin-bottom: 14px; }

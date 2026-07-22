@@ -1,6 +1,7 @@
 package com.university.coursemanagement.aspect;
 
 import com.university.coursemanagement.config.JpaAuditingConfig;
+import com.university.coursemanagement.entity.BaseEntity;
 import com.university.coursemanagement.entity.enums.AuditAction;
 import com.university.coursemanagement.service.AuditLogService;
 import org.aspectj.lang.JoinPoint;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * ASPECT-ORIENTED PROGRAMMING.
@@ -130,7 +132,19 @@ public class AuditAspect {
         if (args == null || args.length == 0) {
             return "";
         }
-        String text = Arrays.toString(args);
+        String text = Arrays.stream(args).map(this::describeArg).collect(Collectors.joining(", "));
         return text.length() <= MAX_ARGS_LENGTH ? text : text.substring(0, MAX_ARGS_LENGTH) + "...";
+    }
+
+    /**
+     * Entity khong ghi de toString nen mac dinh in ra dia chi bam
+     * (vi du {@code Enrollment@2369e44a}) - vo nghia trong nhat ky.
+     * Rut gon thanh {@code Enrollment#5}.
+     */
+    private String describeArg(Object arg) {
+        if (arg instanceof BaseEntity entity) {
+            return "%s#%s".formatted(entity.getClass().getSimpleName(), entity.getId());
+        }
+        return String.valueOf(arg);
     }
 }
