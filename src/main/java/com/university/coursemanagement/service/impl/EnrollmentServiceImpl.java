@@ -47,13 +47,18 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     /**
      * Ghi danh - toan bo buoc chay trong 1 transaction. Neu bat ky kiem tra nao
      * that bai, exception se roll back, khong tao ban ghi mo coi.
+     *
+     * <p>Course duoc nap bang khoa ghi bi quan (PESSIMISTIC_WRITE) truoc khi dem
+     * so cho da chiem. Nho vay hai request ghi danh vao cung mot khoa hoc bi
+     * serialize: request thu hai phai doi request thu nhat commit roi moi dem lai,
+     * nen khong the cung "thay con cho" va cung insert.</p>
      */
     @Override
     @Transactional
     public EnrollmentResponse enroll(EnrollmentRequest request) {
         Student student = studentRepository.findById(request.studentId())
                 .orElseThrow(() -> ResourceNotFoundException.of("hoc vien", request.studentId()));
-        Course course = courseRepository.findById(request.courseId())
+        Course course = courseRepository.findByIdForUpdate(request.courseId())
                 .orElseThrow(() -> ResourceNotFoundException.of("khoa hoc", request.courseId()));
 
         // 1) Khoa hoc phai dang mo (PUBLISHED)
