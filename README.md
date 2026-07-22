@@ -173,6 +173,7 @@ Lỗi trả về `ErrorResponse { status, error, message, path, fieldErrors }` q
 | [`docs/architecture.md`](docs/architecture.md) | Sơ đồ tầng, sơ đồ package, sơ đồ tuần tự luồng ghi danh, danh mục API, cấu hình profile, triển khai |
 | [`docs/schema.sql`](docs/schema.sql) | DDL đầy đủ — **sinh trực tiếp từ metadata Hibernate**, không viết tay |
 | [`docs/toi-uu-hieu-nang.md`](docs/toi-uu-hieu-nang.md) | Các lỗi đã sửa kèm **số liệu đo trước/sau**, và các hạn chế đã biết |
+| [`docs/bao-cao/bao-cao-tieu-luan.md`](docs/bao-cao/bao-cao-tieu-luan.md) | Bản thảo báo cáo tiểu luận (11 chương) |
 
 Ảnh sơ đồ dùng cho báo cáo: `docs/database-schema.png`, `docs/architecture.png`,
 `docs/architecture-package.png`, `docs/architecture-sequence-enrollment.png`, `docs/deployment.png`.
