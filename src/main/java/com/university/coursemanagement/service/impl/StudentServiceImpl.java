@@ -5,8 +5,10 @@ import com.university.coursemanagement.dto.mapper.StudentMapper;
 import com.university.coursemanagement.dto.request.StudentRequest;
 import com.university.coursemanagement.dto.response.StudentResponse;
 import com.university.coursemanagement.entity.Student;
+import com.university.coursemanagement.exception.BusinessException;
 import com.university.coursemanagement.exception.DuplicateResourceException;
 import com.university.coursemanagement.exception.ResourceNotFoundException;
+import com.university.coursemanagement.repository.EnrollmentRepository;
 import com.university.coursemanagement.repository.StudentRepository;
 import com.university.coursemanagement.service.StudentService;
 import org.springframework.data.domain.Pageable;
@@ -20,10 +22,14 @@ import java.util.List;
 public class StudentServiceImpl implements StudentService {
 
     private final StudentRepository studentRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final StudentMapper studentMapper;
 
-    public StudentServiceImpl(StudentRepository studentRepository, StudentMapper studentMapper) {
+    public StudentServiceImpl(StudentRepository studentRepository,
+                              EnrollmentRepository enrollmentRepository,
+                              StudentMapper studentMapper) {
         this.studentRepository = studentRepository;
+        this.enrollmentRepository = enrollmentRepository;
         this.studentMapper = studentMapper;
     }
 
@@ -46,35 +52,41 @@ public class StudentServiceImpl implements StudentService {
             throw new DuplicateResourceException("Email '%s' da duoc su dung".formatted(request.email()));
         }
         studentMapper.updateEntity(student, request);
-        return studentMapper.toResponse(student, student.getEnrollments().size());
+        return toResponse(student);
     }
 
     @Override
     public StudentResponse getById(Long id) {
-        Student student = findOrThrow(id);
-        return studentMapper.toResponse(student, student.getEnrollments().size());
+        return toResponse(findOrThrow(id));
     }
 
     @Override
     public PageResponse<StudentResponse> getAll(Pageable pageable) {
-        return PageResponse.from(
-                studentRepository.findAll(pageable)
-                        .map(s -> studentMapper.toResponse(s, s.getEnrollments().size()))
-        );
+        return PageResponse.from(studentRepository.findAll(pageable).map(this::toResponse));
     }
 
     @Override
     public List<StudentResponse> getAllSimple() {
-        return studentRepository.findAll().stream()
-                .map(s -> studentMapper.toResponse(s, s.getEnrollments().size()))
-                .toList();
+        return studentRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         Student student = findOrThrow(id);
+        if (enrollmentRepository.existsByStudentId(id)) {
+            throw new BusinessException(
+                    "Hoc vien da co lich su ghi danh, khong the xoa. Hay huy cac ghi danh truoc.");
+        }
         studentRepository.delete(student);
+    }
+
+    /**
+     * Dem so ghi danh bang count query thay vi goi {@code student.getEnrollments().size()}
+     * tren collection LAZY - cach cu sinh 1 SELECT rieng cho tung hoc vien (N+1).
+     */
+    private StudentResponse toResponse(Student student) {
+        return studentMapper.toResponse(student, enrollmentRepository.countByStudentId(student.getId()));
     }
 
     private Student findOrThrow(Long id) {

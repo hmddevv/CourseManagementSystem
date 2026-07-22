@@ -14,9 +14,16 @@ import java.util.Optional;
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
-    boolean existsByStudentIdAndCourseIdAndStatus(Long studentId, Long courseId, EnrollmentStatus status);
-
     Optional<Enrollment> findByStudentIdAndCourseId(Long studentId, Long courseId);
+
+    /** Hoc vien co bat ky lich su ghi danh nao khong - dung de chan xoa hoc vien. */
+    boolean existsByStudentId(Long studentId);
+
+    /** Khoa hoc co bat ky lich su ghi danh nao khong - dung de chan xoa khoa hoc. */
+    boolean existsByCourseId(Long courseId);
+
+    /** So ghi danh cua mot hoc vien - dung count query thay vi nap collection LAZY. */
+    long countByStudentId(Long studentId);
 
     /** So cho da bi chiem (ghi danh dang ACTIVE) cua mot khoa hoc. */
     long countByCourseIdAndStatus(Long courseId, EnrollmentStatus status);
@@ -24,6 +31,20 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Page<Enrollment> findByStudentId(Long studentId, Pageable pageable);
 
     Page<Enrollment> findByCourseId(Long courseId, Pageable pageable);
+
+    /**
+     * Dem so ghi danh theo trang thai cho NHIEU khoa hoc trong MOT truy van.
+     * Dung khi tra ve danh sach khoa hoc de tranh N truy van dem rieng le.
+     */
+    @Query("""
+            SELECT e.course.id AS courseId, COUNT(e) AS total
+            FROM Enrollment e
+            WHERE e.course.id IN :courseIds AND e.status = :status
+            GROUP BY e.course.id
+            """)
+    java.util.List<CourseEnrollmentCount> countGroupedByCourseIds(
+            @Param("courseIds") java.util.Collection<Long> courseIds,
+            @Param("status") EnrollmentStatus status);
 
     /** Thong ke: dem so ghi danh ACTIVE cho tung khoa hoc (dung cho "khoa hoc pho bien"). */
     @Query("""

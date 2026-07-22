@@ -21,6 +21,7 @@ import com.university.coursemanagement.repository.InstructorRepository;
 import com.university.coursemanagement.repository.LessonRepository;
 import com.university.coursemanagement.repository.StudentRepository;
 import com.university.coursemanagement.service.CourseService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -119,7 +120,45 @@ public class CourseServiceImpl implements CourseService {
                 CourseSpecifications.priceGreaterOrEqual(c.minPrice()),
                 CourseSpecifications.priceLessOrEqual(c.maxPrice())
         );
-        return PageResponse.from(courseRepository.findAll(spec, pageable).map(this::toResponse));
+        Page<Course> page = courseRepository.findAll(spec, pageable);
+        return PageResponse.from(page.map(new CourseListMapper(page.getContent())::apply));
+    }
+
+    /**
+     * Map ca trang khoa hoc sang DTO voi so truy van co dinh (khong phu thuoc so dong).
+     *
+     * <p>Cach cu goi countByCourseId + countByCourseIdAndStatus cho TUNG dong nen
+     * mot trang 10 khoa hoc sinh 20 truy van dem. O day dem san mot lan cho ca trang
+     * bang 2 truy van GROUP BY, sau do tra cuu trong Map.</p>
+     */
+    private final class CourseListMapper {
+
+        private final Map<Long, Long> lessonCounts;
+        private final Map<Long, Long> activeEnrollmentCounts;
+
+        private CourseListMapper(List<Course> courses) {
+            List<Long> ids = courses.stream().map(Course::getId).toList();
+            if (ids.isEmpty()) {
+                this.lessonCounts = Map.of();
+                this.activeEnrollmentCounts = Map.of();
+                return;
+            }
+            this.lessonCounts = lessonRepository.countGroupedByCourseIds(ids).stream()
+                    .collect(Collectors.toMap(
+                            LessonRepository.CourseCount::getCourseId,
+                            LessonRepository.CourseCount::getTotal));
+            this.activeEnrollmentCounts = enrollmentRepository
+                    .countGroupedByCourseIds(ids, EnrollmentStatus.ACTIVE).stream()
+                    .collect(Collectors.toMap(
+                            EnrollmentRepository.CourseEnrollmentCount::getCourseId,
+                            EnrollmentRepository.CourseEnrollmentCount::getTotal));
+        }
+
+        private CourseResponse apply(Course course) {
+            long lessons = lessonCounts.getOrDefault(course.getId(), 0L);
+            long active = activeEnrollmentCounts.getOrDefault(course.getId(), 0L);
+            return courseMapper.toResponse(course, (int) lessons, active);
+        }
     }
 
     @Override
@@ -148,9 +187,12 @@ public class CourseServiceImpl implements CourseService {
     @Transactional
     public void delete(Long id) {
         Course course = findOrThrow(id);
-        long active = enrollmentRepository.countByCourseIdAndStatus(id, EnrollmentStatus.ACTIVE);
-        if (active > 0) {
-            throw new BusinessException("Khong the xoa khoa hoc dang co hoc vien theo hoc (%d).".formatted(active));
+        // Chan xoa khi con BAT KY lich su ghi danh nao, khong chi rieng ACTIVE:
+        // Course.enrollments khong cascade nen ban ghi CANCELLED/COMPLETED van giu
+        // khoa ngoai NOT NULL -> xoa se vo FK va tra ve loi ky thuat kho hieu.
+        if (enrollmentRepository.existsByCourseId(id)) {
+            throw new BusinessException(
+                    "Khoa hoc da co lich su ghi danh, khong the xoa. Hay dung chuc nang luu tru (archive).");
         }
         courseRepository.delete(course);
     }
@@ -158,8 +200,10 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public CourseStatisticsResponse getStatistics() {
         long total = courseRepository.count();
-        long published = courseRepository.findAll(CourseSpecifications.hasStatus(CourseStatus.PUBLISHED)).size();
-        long draft = courseRepository.findAll(CourseSpecifications.hasStatus(CourseStatus.DRAFT)).size();
+        // Dung count(spec) cua JpaSpecificationExecutor: SELECT COUNT(*) chay ngay tren DB,
+        // thay vi findAll(spec).size() von tai toan bo entity vao bo nho chi de dem.
+        long published = courseRepository.count(CourseSpecifications.hasStatus(CourseStatus.PUBLISHED));
+        long draft = courseRepository.count(CourseSpecifications.hasStatus(CourseStatus.DRAFT));
 
         List<EnrollmentRepository.CourseEnrollmentCount> counts =
                 enrollmentRepository.countActiveGroupedByCourse(EnrollmentStatus.ACTIVE);
