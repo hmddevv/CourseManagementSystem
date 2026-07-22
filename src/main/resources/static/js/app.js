@@ -39,7 +39,7 @@ function toast(msg, type = "success") {
 
 /* ---------- Utils ---------- */
 const money = (n) => (n == null ? "0" : Number(n).toLocaleString("vi-VN")) + "đ";
-const esc = (s) => (s == null ? "" : String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])));
+const esc = (s) => (s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])));
 const badge = (v, extra = "") => `<span class="badge ${extra} ${esc(v)}">${esc(v)}</span>`;
 
 /* ---------- Modal ---------- */
@@ -143,7 +143,7 @@ const CourseUI = {
                 <td><div class="actions">
                     ${c.status === "DRAFT" ? `<button class="btn sm primary" onclick="CourseUI.publish(${c.id})">Xuất bản</button>` : ""}
                     ${c.status === "PUBLISHED" ? `<button class="btn sm" onclick="CourseUI.archive(${c.id})">Lưu trữ</button>` : ""}
-                    <button class="btn sm" onclick="CourseUI.lessons(${c.id}, '${esc(c.title)}')">Bài học</button>
+                    <button class="btn sm" onclick="CourseUI.lessons(${c.id})">Bài học</button>
                     <button class="btn sm" onclick="CourseUI.openForm(${c.id})">Sửa</button>
                     <button class="btn sm danger" onclick="CourseUI.remove(${c.id})">Xóa</button>
                 </div></td>
@@ -191,10 +191,17 @@ const CourseUI = {
     async archive(id) { try { await api.patch(`/courses/${id}/archive`); toast("Đã lưu trữ"); this.load(); } catch (e) { toast(e.message, "error"); } },
     async remove(id) { if (!confirm("Xóa khóa học này?")) return; try { await api.del("/courses/" + id); toast("Đã xóa"); this.load(); Dashboard.load(); } catch (e) { toast(e.message, "error"); } },
 
-    async lessons(courseId, title) {
-        const list = await api.get(`/courses/${courseId}/lessons`);
+    // Tieu de duoc lay lai tu API thay vi noi chuoi vao thuoc tinh onclick:
+    // tieu de chua dau nhay don se lam vo cu phap JS trong onclick (escape HTML
+    // khong cuu duoc vi trinh duyet giai ma HTML truoc roi moi phan tich JS).
+    async lessons(courseId) {
+        const [course, list] = await Promise.all([
+            api.get("/courses/" + courseId),
+            api.get(`/courses/${courseId}/lessons`)
+        ]);
+        const title = course.title;
         const rows = list.map(l => `<div class="popular-item"><span><strong>${l.orderIndex}.</strong> ${esc(l.title)} <span class="muted">(${l.durationMinutes || 0}')</span></span>
-            <button class="btn sm danger" onclick="CourseUI.delLesson(${l.id}, ${courseId}, '${esc(title)}')">Xóa</button></div>`).join("");
+            <button class="btn sm danger" onclick="CourseUI.delLesson(${l.id}, ${courseId})">Xóa</button></div>`).join("");
         Modal.open("Bài học: " + title,
             `<div style="display:flex;flex-direction:column;gap:8px">${rows || '<div class="empty">Chưa có bài học</div>'}</div>
              <hr style="margin:14px 0;border:none;border-top:1px solid #eee">
@@ -203,10 +210,10 @@ const CourseUI = {
              ${field("Thời lượng (phút)", "lmin", "number", 30)}`,
             async () => {
                 await api.post(`/courses/${courseId}/lessons`, { title: Modal.val("ltitle"), orderIndex: Number(Modal.val("lorder")), durationMinutes: Number(Modal.val("lmin")) });
-                toast("Đã thêm bài học"); this.lessons(courseId, title); this.load();
+                toast("Đã thêm bài học"); this.lessons(courseId); this.load();
             });
     },
-    async delLesson(lessonId, courseId, title) { try { await api.del("/lessons/" + lessonId); toast("Đã xóa bài học"); this.lessons(courseId, title); } catch (e) { toast(e.message, "error"); } }
+    async delLesson(lessonId, courseId) { try { await api.del("/lessons/" + lessonId); toast("Đã xóa bài học"); this.lessons(courseId); } catch (e) { toast(e.message, "error"); } }
 };
 
 /* ============================================================

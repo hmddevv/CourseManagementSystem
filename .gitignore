@@ -28,3 +28,8 @@ Thumbs.db
 ### Logs ###
 *.log
 logs/
+
+### Bien moi truong (khong bao gio commit) ###
+.env
+.env.local
+!.env.example
