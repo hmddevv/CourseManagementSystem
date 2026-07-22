@@ -52,28 +52,22 @@ public class InstructorServiceImpl implements InstructorService {
             throw new DuplicateResourceException("Email '%s' da duoc su dung".formatted(request.email()));
         }
         instructorMapper.updateEntity(instructor, request);
-        return instructorMapper.toResponse(instructor, instructor.getCourses().size());
+        return toResponse(instructor);
     }
 
     @Override
     public InstructorResponse getById(Long id) {
-        Instructor instructor = findOrThrow(id);
-        return instructorMapper.toResponse(instructor, instructor.getCourses().size());
+        return toResponse(findOrThrow(id));
     }
 
     @Override
     public PageResponse<InstructorResponse> getAll(Pageable pageable) {
-        return PageResponse.from(
-                instructorRepository.findAll(pageable)
-                        .map(i -> instructorMapper.toResponse(i, i.getCourses().size()))
-        );
+        return PageResponse.from(instructorRepository.findAll(pageable).map(this::toResponse));
     }
 
     @Override
     public List<InstructorResponse> getAllSimple() {
-        return instructorRepository.findAll().stream()
-                .map(i -> instructorMapper.toResponse(i, i.getCourses().size()))
-                .toList();
+        return instructorRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -84,6 +78,14 @@ public class InstructorServiceImpl implements InstructorService {
             throw new BusinessException("Khong the xoa giang vien dang phu trach khoa hoc.");
         }
         instructorRepository.delete(instructor);
+    }
+
+    /**
+     * Dem so khoa hoc bang count query thay vi goi {@code instructor.getCourses().size()}
+     * tren collection LAZY - cach cu sinh 1 SELECT rieng cho tung giang vien (N+1).
+     */
+    private InstructorResponse toResponse(Instructor instructor) {
+        return instructorMapper.toResponse(instructor, courseRepository.countByInstructorId(instructor.getId()));
     }
 
     private Instructor findOrThrow(Long id) {

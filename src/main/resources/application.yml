@@ -13,6 +13,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # Luoi an toan chung cho N+1: khi Hibernate phai nap 1 quan he LAZY, no gom
+        # toi da 20 khoa lai va nap bang MOT cau IN (...) thay vi 20 cau SELECT rieng.
+        # Cac endpoint quan trong van nap tuong minh bang @EntityGraph / count query.
+        default_batch_fetch_size: 20
   mvc:
     problemdetails:
       enabled: true
