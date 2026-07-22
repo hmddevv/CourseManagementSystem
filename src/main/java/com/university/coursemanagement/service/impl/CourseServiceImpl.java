@@ -1,6 +1,7 @@
 package com.university.coursemanagement.service.impl;
 
 import com.university.coursemanagement.common.PageResponse;
+import com.university.coursemanagement.config.CacheConfig;
 import com.university.coursemanagement.dto.mapper.CourseMapper;
 import com.university.coursemanagement.dto.request.CourseRequest;
 import com.university.coursemanagement.dto.request.CourseSearchCriteria;
@@ -21,6 +22,8 @@ import com.university.coursemanagement.repository.InstructorRepository;
 import com.university.coursemanagement.repository.LessonRepository;
 import com.university.coursemanagement.repository.StudentRepository;
 import com.university.coursemanagement.service.CourseService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -61,6 +64,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.COURSE_STATISTICS_CACHE, allEntries = true)
     public CourseResponse create(CourseRequest request) {
         Category category = loadCategory(request.categoryId());
         Instructor instructor = loadInstructor(request.instructorId());
@@ -83,6 +87,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.COURSE_STATISTICS_CACHE, allEntries = true)
     public CourseResponse update(Long id, CourseRequest request) {
         Course course = findOrThrow(id);
         if (course.getStatus() == CourseStatus.ARCHIVED) {
@@ -163,6 +168,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.COURSE_STATISTICS_CACHE, allEntries = true)
     public CourseResponse publish(Long id) {
         Course course = findOrThrow(id);
         if (course.getStatus() == CourseStatus.PUBLISHED) {
@@ -177,6 +183,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.COURSE_STATISTICS_CACHE, allEntries = true)
     public CourseResponse archive(Long id) {
         Course course = findOrThrow(id);
         course.setStatus(CourseStatus.ARCHIVED);
@@ -185,6 +192,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.COURSE_STATISTICS_CACHE, allEntries = true)
     public void delete(Long id) {
         Course course = findOrThrow(id);
         // Chan xoa khi con BAT KY lich su ghi danh nao, khong chi rieng ACTIVE:
@@ -197,7 +205,12 @@ public class CourseServiceImpl implements CourseService {
         courseRepository.delete(course);
     }
 
+    /**
+     * Thong ke dashboard - tong hop tu nhieu truy van nen ton kem, nhung du lieu
+     * chi doi khi co thao tac ghi len khoa hoc. Cache lai va xoa cache o cac ham ghi.
+     */
     @Override
+    @Cacheable(CacheConfig.COURSE_STATISTICS_CACHE)
     public CourseStatisticsResponse getStatistics() {
         long total = courseRepository.count();
         // Dung count(spec) cua JpaSpecificationExecutor: SELECT COUNT(*) chay ngay tren DB,

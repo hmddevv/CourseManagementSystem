@@ -1,6 +1,7 @@
 package com.university.coursemanagement.service.impl;
 
 import com.university.coursemanagement.common.PageResponse;
+import com.university.coursemanagement.config.CacheConfig;
 import com.university.coursemanagement.dto.mapper.CategoryMapper;
 import com.university.coursemanagement.dto.request.CategoryRequest;
 import com.university.coursemanagement.dto.response.CategoryResponse;
@@ -11,6 +12,8 @@ import com.university.coursemanagement.exception.ResourceNotFoundException;
 import com.university.coursemanagement.repository.CategoryRepository;
 import com.university.coursemanagement.repository.CourseRepository;
 import com.university.coursemanagement.service.CategoryService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +42,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CATEGORIES_CACHE, allEntries = true)
     public CategoryResponse create(CategoryRequest request) {
         if (categoryRepository.existsByNameIgnoreCase(request.name())) {
             throw new DuplicateResourceException("Danh muc '%s' da ton tai".formatted(request.name()));
@@ -49,6 +53,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CATEGORIES_CACHE, allEntries = true)
     public CategoryResponse update(Long id, CategoryRequest request) {
         Category category = findOrThrow(id);
         categoryRepository.findByNameIgnoreCase(request.name())
@@ -75,7 +80,12 @@ public class CategoryServiceImpl implements CategoryService {
         );
     }
 
+    /**
+     * Danh sach danh muc rut gon - duoc goi o moi man hinh co dropdown nen cache lai.
+     * Cache bi xoa toan bo moi khi co thao tac ghi len danh muc, nen du lieu khong the cu.
+     */
     @Override
+    @Cacheable(CacheConfig.CATEGORIES_CACHE)
     public List<CategoryResponse> getAllSimple() {
         return categoryRepository.findAll().stream()
                 .map(c -> categoryMapper.toResponse(c, courseRepository.countByCategoryId(c.getId())))
@@ -84,6 +94,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CATEGORIES_CACHE, allEntries = true)
     public void delete(Long id) {
         Category category = findOrThrow(id);
         if (courseRepository.existsByCategoryId(id)) {

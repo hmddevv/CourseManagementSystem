@@ -1,6 +1,8 @@
 package com.university.coursemanagement;
 
+import com.university.coursemanagement.dto.request.CourseRequest;
 import com.university.coursemanagement.dto.request.EnrollmentRequest;
+import com.university.coursemanagement.dto.request.LessonRequest;
 import com.university.coursemanagement.entity.Category;
 import com.university.coursemanagement.entity.Course;
 import com.university.coursemanagement.entity.Instructor;
@@ -15,6 +17,7 @@ import com.university.coursemanagement.repository.InstructorRepository;
 import com.university.coursemanagement.repository.StudentRepository;
 import com.university.coursemanagement.service.CourseService;
 import com.university.coursemanagement.service.EnrollmentService;
+import com.university.coursemanagement.service.LessonService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,6 +38,7 @@ class CourseServiceTest {
 
     @Autowired CourseService courseService;
     @Autowired EnrollmentService enrollmentService;
+    @Autowired LessonService lessonService;
     @Autowired CategoryRepository categoryRepository;
     @Autowired InstructorRepository instructorRepository;
     @Autowired StudentRepository studentRepository;
@@ -83,18 +87,36 @@ class CourseServiceTest {
         assertThat(courseRepository.existsById(course.getId())).isFalse();
     }
 
+    /**
+     * Thong ke duoc cache (@Cacheable) nen test phai ghi qua tang Service - dung
+     * duong ma ung dung that di qua - de @CacheEvict co co hoi chay. Ghi thang
+     * bang repository se khong lam mat hieu luc cache.
+     */
     @Test
     void getStatistics_shouldCountPublishedAndDraftCourses() {
         var before = courseService.getStatistics();
-        courseRepository.save(newDraftCourse(true));
-        Course published = givenPublishedCourse();
+
+        Category category = categoryRepository.save(
+                Category.builder().name("Stat-Cat-" + System.nanoTime()).build());
+        Instructor instructor = instructorRepository.save(Instructor.builder()
+                .fullName("GV Stat").email("gv-stat-" + System.nanoTime() + "@t.edu").build());
+
+        courseService.create(courseRequest("Khoa nhap thong ke", category, instructor));
+
+        var toPublish = courseService.create(courseRequest("Khoa xuat ban", category, instructor));
+        lessonService.addLesson(toPublish.id(), new LessonRequest("Bai 1", null, 1, 30));
+        courseService.publish(toPublish.id());
 
         var after = courseService.getStatistics();
 
         assertThat(after.draftCourses()).isEqualTo(before.draftCourses() + 1);
         assertThat(after.publishedCourses()).isEqualTo(before.publishedCourses() + 1);
         assertThat(after.totalCourses()).isEqualTo(before.totalCourses() + 2);
-        assertThat(published.getStatus()).isEqualTo(CourseStatus.PUBLISHED);
+    }
+
+    private CourseRequest courseRequest(String title, Category category, Instructor instructor) {
+        return new CourseRequest(title, "mo ta", CourseLevel.BEGINNER, BigDecimal.ZERO,
+                30, 10, category.getId(), instructor.getId());
     }
 
     // ----- du lieu mau -----
