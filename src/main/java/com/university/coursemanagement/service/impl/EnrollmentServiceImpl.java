@@ -15,6 +15,7 @@ import com.university.coursemanagement.factory.EnrollmentFactory;
 import com.university.coursemanagement.repository.CourseRepository;
 import com.university.coursemanagement.repository.EnrollmentRepository;
 import com.university.coursemanagement.repository.StudentRepository;
+import com.university.coursemanagement.service.CertificateService;
 import com.university.coursemanagement.service.EnrollmentService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,17 +32,20 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private final CourseRepository courseRepository;
     private final EnrollmentFactory enrollmentFactory;
     private final EnrollmentMapper enrollmentMapper;
+    private final CertificateService certificateService;
 
     public EnrollmentServiceImpl(EnrollmentRepository enrollmentRepository,
                                  StudentRepository studentRepository,
                                  CourseRepository courseRepository,
                                  EnrollmentFactory enrollmentFactory,
-                                 EnrollmentMapper enrollmentMapper) {
+                                 EnrollmentMapper enrollmentMapper,
+                                 CertificateService certificateService) {
         this.enrollmentRepository = enrollmentRepository;
         this.studentRepository = studentRepository;
         this.courseRepository = courseRepository;
         this.enrollmentFactory = enrollmentFactory;
         this.enrollmentMapper = enrollmentMapper;
+        this.certificateService = certificateService;
     }
 
     /**
@@ -100,6 +104,14 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         return enrollmentMapper.toResponse(enrollment);
     }
 
+    /**
+     * Cap nhat tien do. Khi dat 100%, ghi danh chuyen sang COMPLETED va chung chi
+     * duoc cap ngay trong CUNG transaction - neu cap chung chi that bai thi tien do
+     * cung khong duoc luu, tranh tinh trang "da hoan thanh nhung khong co chung chi".
+     *
+     * <p>Viec cap chung chi la idempotent nen goi lai nhieu lan voi progress = 100
+     * khong tao chung chi trung.</p>
+     */
     @Override
     @Transactional
     public EnrollmentResponse updateProgress(Long enrollmentId, UpdateProgressRequest request) {
@@ -111,7 +123,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollment.setProgressPercent(progress);
         if (progress >= 100) {
             enrollment.setStatus(EnrollmentStatus.COMPLETED);
-            enrollment.setCompletedAt(LocalDateTime.now());
+            if (enrollment.getCompletedAt() == null) {
+                enrollment.setCompletedAt(LocalDateTime.now());
+            }
+            certificateService.issueFor(enrollment);
         } else {
             enrollment.setStatus(EnrollmentStatus.ACTIVE);
             enrollment.setCompletedAt(null);

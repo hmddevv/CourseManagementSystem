@@ -51,3 +51,7 @@ app:
   info:
     title: He thong quan ly khoa hoc
     version: 1.0.0
+  reminder:
+    # Job nhac hoc: 8h sang moi ngay, nhac hoc vien khong hoat dong qua 7 ngay
+    cron: "0 0 8 * * *"
+    inactive-days: 7

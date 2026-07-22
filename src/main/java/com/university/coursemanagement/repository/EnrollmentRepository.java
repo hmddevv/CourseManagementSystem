@@ -46,6 +46,19 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
             @Param("courseIds") java.util.Collection<Long> courseIds,
             @Param("status") EnrollmentStatus status);
 
+    /**
+     * Ghi danh con dang hoc nhung khong co thay doi nao ke tu moc thoi gian cho truoc.
+     * Nap san hoc vien va khoa hoc de job nhac hoc khong sinh N+1 khi ghi log.
+     */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"student", "course"})
+    @Query("""
+            SELECT e FROM Enrollment e
+            WHERE e.status = :status AND e.updatedAt < :threshold
+            ORDER BY e.updatedAt ASC
+            """)
+    java.util.List<Enrollment> findInactiveSince(@Param("status") EnrollmentStatus status,
+                                                 @Param("threshold") java.time.LocalDateTime threshold);
+
     /** Thong ke: dem so ghi danh ACTIVE cho tung khoa hoc (dung cho "khoa hoc pho bien"). */
     @Query("""
             SELECT e.course.id AS courseId, COUNT(e) AS total
