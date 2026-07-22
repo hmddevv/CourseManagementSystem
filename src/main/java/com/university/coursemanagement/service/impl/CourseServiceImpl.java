@@ -20,6 +20,7 @@ import com.university.coursemanagement.repository.CourseSpecifications;
 import com.university.coursemanagement.repository.EnrollmentRepository;
 import com.university.coursemanagement.repository.InstructorRepository;
 import com.university.coursemanagement.repository.LessonRepository;
+import com.university.coursemanagement.repository.ReviewRepository;
 import com.university.coursemanagement.repository.StudentRepository;
 import com.university.coursemanagement.service.CourseService;
 import org.springframework.cache.annotation.CacheEvict;
@@ -44,6 +45,7 @@ public class CourseServiceImpl implements CourseService {
     private final LessonRepository lessonRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
+    private final ReviewRepository reviewRepository;
     private final CourseMapper courseMapper;
 
     public CourseServiceImpl(CourseRepository courseRepository,
@@ -52,6 +54,7 @@ public class CourseServiceImpl implements CourseService {
                              LessonRepository lessonRepository,
                              EnrollmentRepository enrollmentRepository,
                              StudentRepository studentRepository,
+                             ReviewRepository reviewRepository,
                              CourseMapper courseMapper) {
         this.courseRepository = courseRepository;
         this.categoryRepository = categoryRepository;
@@ -59,6 +62,7 @@ public class CourseServiceImpl implements CourseService {
         this.lessonRepository = lessonRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.studentRepository = studentRepository;
+        this.reviewRepository = reviewRepository;
         this.courseMapper = courseMapper;
     }
 
@@ -140,12 +144,14 @@ public class CourseServiceImpl implements CourseService {
 
         private final Map<Long, Long> lessonCounts;
         private final Map<Long, Long> activeEnrollmentCounts;
+        private final Map<Long, ReviewRepository.CourseRatingAggregate> ratings;
 
         private CourseListMapper(List<Course> courses) {
             List<Long> ids = courses.stream().map(Course::getId).toList();
             if (ids.isEmpty()) {
                 this.lessonCounts = Map.of();
                 this.activeEnrollmentCounts = Map.of();
+                this.ratings = Map.of();
                 return;
             }
             this.lessonCounts = lessonRepository.countGroupedByCourseIds(ids).stream()
@@ -157,12 +163,19 @@ public class CourseServiceImpl implements CourseService {
                     .collect(Collectors.toMap(
                             EnrollmentRepository.CourseEnrollmentCount::getCourseId,
                             EnrollmentRepository.CourseEnrollmentCount::getTotal));
+            this.ratings = reviewRepository.aggregateByCourseIds(ids).stream()
+                    .collect(Collectors.toMap(
+                            ReviewRepository.CourseRatingAggregate::getCourseId,
+                            aggregate -> aggregate));
         }
 
         private CourseResponse apply(Course course) {
             long lessons = lessonCounts.getOrDefault(course.getId(), 0L);
             long active = activeEnrollmentCounts.getOrDefault(course.getId(), 0L);
-            return courseMapper.toResponse(course, (int) lessons, active);
+            ReviewRepository.CourseRatingAggregate rating = ratings.get(course.getId());
+            return courseMapper.toResponse(course, (int) lessons, active,
+                    roundRating(rating == null ? null : rating.getAverage()),
+                    rating == null ? 0L : rating.getTotal());
         }
     }
 
@@ -244,7 +257,16 @@ public class CourseServiceImpl implements CourseService {
     private CourseResponse toResponse(Course course) {
         int lessonCount = (int) lessonRepository.countByCourseId(course.getId());
         long active = enrollmentRepository.countByCourseIdAndStatus(course.getId(), EnrollmentStatus.ACTIVE);
-        return courseMapper.toResponse(course, lessonCount, active);
+        ReviewRepository.CourseRatingAggregate rating = reviewRepository
+                .aggregateByCourseIds(List.of(course.getId())).stream().findFirst().orElse(null);
+        return courseMapper.toResponse(course, lessonCount, active,
+                roundRating(rating == null ? null : rating.getAverage()),
+                rating == null ? 0L : rating.getTotal());
+    }
+
+    /** Lam tron diem trung binh ve 1 chu so thap phan cho de doc tren giao dien. */
+    private double roundRating(Double average) {
+        return average == null ? 0d : Math.round(average * 10d) / 10d;
     }
 
     private Course findOrThrow(Long id) {

@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 /**
  * Du lieu tra ve cho khoa hoc, da lam giau them thong tin dan xuat
- * (ten danh muc, ten giang vien, so bai hoc, so cho con trong).
+ * (ten danh muc, ten giang vien, so bai hoc, so cho con trong, diem danh gia).
  */
 public record CourseResponse(
         Long id,
@@ -26,6 +26,8 @@ public record CourseResponse(
         int lessonCount,
         long activeEnrollments,
         long availableSlots,
+        double averageRating,
+        long reviewCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

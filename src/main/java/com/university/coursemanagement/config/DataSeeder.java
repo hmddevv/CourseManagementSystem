@@ -5,6 +5,7 @@ import com.university.coursemanagement.entity.Course;
 import com.university.coursemanagement.entity.Enrollment;
 import com.university.coursemanagement.entity.Instructor;
 import com.university.coursemanagement.entity.Lesson;
+import com.university.coursemanagement.entity.Review;
 import com.university.coursemanagement.entity.Student;
 import com.university.coursemanagement.entity.enums.CourseLevel;
 import com.university.coursemanagement.entity.enums.CourseStatus;
@@ -13,6 +14,7 @@ import com.university.coursemanagement.repository.CategoryRepository;
 import com.university.coursemanagement.repository.CourseRepository;
 import com.university.coursemanagement.repository.EnrollmentRepository;
 import com.university.coursemanagement.repository.InstructorRepository;
+import com.university.coursemanagement.repository.ReviewRepository;
 import com.university.coursemanagement.repository.StudentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,17 +41,20 @@ public class DataSeeder implements CommandLineRunner {
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final ReviewRepository reviewRepository;
 
     public DataSeeder(CategoryRepository categoryRepository,
                       InstructorRepository instructorRepository,
                       StudentRepository studentRepository,
                       CourseRepository courseRepository,
-                      EnrollmentRepository enrollmentRepository) {
+                      EnrollmentRepository enrollmentRepository,
+                      ReviewRepository reviewRepository) {
         this.categoryRepository = categoryRepository;
         this.instructorRepository = instructorRepository;
         this.studentRepository = studentRepository;
         this.courseRepository = courseRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Override
@@ -125,6 +130,16 @@ public class DataSeeder implements CommandLineRunner {
                 Enrollment.builder().student(students[0]).course(english)
                         .enrolledAt(LocalDateTime.now().minusDays(2))
                         .status(EnrollmentStatus.ACTIVE).progressPercent(10).build()
+        ));
+
+        // Danh gia mau - de bang xep hang co du lieu ngay khi khoi dong
+        reviewRepository.saveAll(List.of(
+                Review.builder().student(students[0]).course(java).rating(5)
+                        .comment("Khoa hoc rat chi tiet, vi du de hieu.").build(),
+                Review.builder().student(students[1]).course(java).rating(4)
+                        .comment("Noi dung tot, mong co them bai tap.").build(),
+                Review.builder().student(students[0]).course(english).rating(4)
+                        .comment("Giang vien phat am chuan.").build()
         ));
 
         log.info("[DataSeeder] Hoan tat: {} danh muc, {} khoa hoc, {} hoc vien.",

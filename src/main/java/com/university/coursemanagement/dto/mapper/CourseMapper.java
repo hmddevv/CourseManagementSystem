@@ -5,13 +5,15 @@ import com.university.coursemanagement.entity.Course;
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper cho Course. So bai hoc va so ghi danh dang hoat dong duoc truyen tu
- * Service (tinh bang count query) de tranh N+1 va lazy-loading ngoai transaction.
+ * Mapper cho Course. So bai hoc, so ghi danh dang hoat dong va diem danh gia deu
+ * duoc truyen tu Service (tinh bang truy van gop) de tranh N+1 va lazy-loading
+ * ngoai transaction.
  */
 @Component
 public class CourseMapper {
 
-    public CourseResponse toResponse(Course course, int lessonCount, long activeEnrollments) {
+    public CourseResponse toResponse(Course course, int lessonCount, long activeEnrollments,
+                                     double averageRating, long reviewCount) {
         long available = Math.max(0, course.getCapacity() - activeEnrollments);
         return new CourseResponse(
                 course.getId(),
@@ -29,6 +31,8 @@ public class CourseMapper {
                 lessonCount,
                 activeEnrollments,
                 available,
+                averageRating,
+                reviewCount,
                 course.getCreatedAt(),
                 course.getUpdatedAt()
         );
