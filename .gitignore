@@ -33,3 +33,6 @@ logs/
 .env
 .env.local
 !.env.example
+
+# Tai lieu noi bo cua nhom (ban thao bao cao, kich ban thuyet trinh)
+docs/bao-cao/
