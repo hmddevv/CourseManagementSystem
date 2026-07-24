@@ -17,10 +17,26 @@ Mở sẵn **5 tab** trên trình duyệt, theo đúng thứ tự này:
 | 4 | Swagger UI | <http://localhost:8080/swagger-ui.html> |
 | 5 | GitHub repo | <https://github.com/hmddevv/CourseManagementSystem> |
 
-Chạy app **trước khi lên bục** (đừng chạy trên bục, mất 40 giây khởi động):
+Chạy app **trước khi lên bục** (đừng chạy trên bục, mất 40 giây khởi động).
+
+**Cách A — Docker Compose** (chạy cả MySQL, giống môi trường thật):
 
 ```bash
 cd TieuLuan
+cp .env.example .env      # chỉ cần làm 1 lần
+docker compose up -d --build
+```
+
+Chờ `docker compose ps` hiện cả `cms-mysql` và `cms-app` đều **healthy**.
+Lần đầu chạy DB rỗng → nạp dữ liệu mẫu bằng script `docs/bao-cao/seed-demo.sh`:
+
+```bash
+bash docs/bao-cao/seed-demo.sh
+```
+
+**Cách B — chạy nhanh bằng H2** (không cần Docker, tự có sẵn dữ liệu mẫu):
+
+```bash
 mvnw.cmd spring-boot:run
 ```
 
@@ -29,6 +45,18 @@ dashboard có số liệu.
 
 **Nếu app không chạy được** → vẫn báo cáo bình thường bằng tab 1, 2, 5. Đừng
 loay hoay sửa trên bục.
+
+### Dữ liệu mẫu đã nạp sẵn — dùng đúng các mục này khi demo
+
+| Dùng để demo | Chọn cái này |
+|---|---|
+| Khóa học có đánh giá cao nhất | **Spring Boot từ cơ bản đến nâng cao** — 4.7★, 3 đánh giá |
+| Học viên đã có chứng chỉ | **Hồ Minh Đảo** — 2 chứng chỉ |
+| **Ghi danh trùng → báo lỗi** | Hồ Minh Đảo + Spring Boot (đã ghi danh rồi) → trả HTTP **422** |
+| **Khóa sắp đầy** | **Kiến trúc phân tầng trong Java** — sức chứa chỉ **2** chỗ |
+
+Tổng: 6 khóa học đã xuất bản, 5 học viên, 7 ghi danh, 6 đánh giá, 2 chứng chỉ,
+43 dòng nhật ký thao tác.
 
 ---
 
