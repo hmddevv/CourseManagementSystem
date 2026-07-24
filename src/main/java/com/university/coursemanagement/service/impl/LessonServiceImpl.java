@@ -18,7 +18,6 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 public class LessonServiceImpl implements LessonService {
-
     private final LessonRepository lessonRepository;
     private final CourseRepository courseRepository;
     private final LessonMapper lessonMapper;
@@ -35,13 +34,13 @@ public class LessonServiceImpl implements LessonService {
     @Transactional
     public LessonResponse addLesson(Long courseId, LessonRequest request) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> ResourceNotFoundException.of("khoa hoc", courseId));
+                .orElseThrow(() -> ResourceNotFoundException.of("khóa học", courseId));
         if (lessonRepository.existsByCourseIdAndOrderIndex(courseId, request.orderIndex())) {
             throw new BusinessException(
-                    "Bai hoc thu %d da ton tai trong khoa hoc nay.".formatted(request.orderIndex()));
+                    "Bài học thứ %d đã tồn tại trong khóa học này.".formatted(request.orderIndex()));
         }
         Lesson lesson = lessonMapper.toEntity(request);
-        course.addLesson(lesson);          // giu dong bo hai chieu
+        course.addLesson(lesson);
         Lesson saved = lessonRepository.save(lesson);
         return lessonMapper.toResponse(saved);
     }
@@ -54,7 +53,7 @@ public class LessonServiceImpl implements LessonService {
         if (!lesson.getOrderIndex().equals(request.orderIndex())
                 && lessonRepository.existsByCourseIdAndOrderIndex(courseId, request.orderIndex())) {
             throw new BusinessException(
-                    "Bai hoc thu %d da ton tai trong khoa hoc nay.".formatted(request.orderIndex()));
+                    "Bài học thứ %d đã tồn tại trong khóa học này.".formatted(request.orderIndex()));
         }
         lessonMapper.updateEntity(lesson, request);
         return lessonMapper.toResponse(lesson);
@@ -63,7 +62,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public List<LessonResponse> getLessonsByCourse(Long courseId) {
         if (!courseRepository.existsById(courseId)) {
-            throw ResourceNotFoundException.of("khoa hoc", courseId);
+            throw ResourceNotFoundException.of("khóa học", courseId);
         }
         return lessonRepository.findByCourseIdOrderByOrderIndexAsc(courseId).stream()
                 .map(lessonMapper::toResponse)
@@ -79,6 +78,6 @@ public class LessonServiceImpl implements LessonService {
 
     private Lesson findOrThrow(Long lessonId) {
         return lessonRepository.findById(lessonId)
-                .orElseThrow(() -> ResourceNotFoundException.of("bai hoc", lessonId));
+                .orElseThrow(() -> ResourceNotFoundException.of("bài học", lessonId));
     }
 }

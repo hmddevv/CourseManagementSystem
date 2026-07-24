@@ -11,7 +11,6 @@ import java.util.Optional;
 
 @Repository
 public interface CertificateRepository extends JpaRepository<Certificate, Long> {
-
     boolean existsByEnrollmentId(Long enrollmentId);
 
     Optional<Certificate> findByCode(String code);
@@ -20,7 +19,6 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
 
     boolean existsByCode(String code);
 
-    /** Chung chi cua mot hoc vien; nap san ghi danh de tranh N+1 khi map DTO. */
     @EntityGraph(attributePaths = {"enrollment"})
     Page<Certificate> findByEnrollmentStudentId(Long studentId, Pageable pageable);
 }

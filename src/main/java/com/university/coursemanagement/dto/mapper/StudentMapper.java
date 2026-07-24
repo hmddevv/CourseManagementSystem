@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class StudentMapper {
-
     public Student toEntity(StudentRequest request) {
         return Student.builder()
                 .fullName(request.fullName())

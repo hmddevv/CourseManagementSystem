@@ -16,8 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class AuditLogServiceImpl implements AuditLogService {
-
-    /** Gioi han do dai truong detail cho khop cot varchar(500). */
     private static final int MAX_DETAIL_LENGTH = 500;
 
     private final AuditLogRepository auditLogRepository;
@@ -28,13 +26,6 @@ public class AuditLogServiceImpl implements AuditLogService {
         this.auditLogMapper = auditLogMapper;
     }
 
-    /**
-     * Ghi nhat ky trong mot transaction RIENG (REQUIRES_NEW).
-     *
-     * <p>Ly do: nhat ky la du lieu quan sat, khong duoc phep lam hong nghiep vu.
-     * Neu ghi nhat ky loi thi nghiep vu chinh van giu nguyen ket qua, va nguoc lai
-     * nhat ky khong bi cuon nguoc theo mot giao dich nghiep vu that bai sau do.</p>
-     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(String entityName, Long entityId, AuditAction action, String actor, String detail) {

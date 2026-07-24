@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ReviewMapper {
-
     public ReviewResponse toResponse(Review review) {
         return new ReviewResponse(
                 review.getId(),

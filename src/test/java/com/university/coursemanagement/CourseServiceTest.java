@@ -28,14 +28,9 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Kiem tra quy tac nghiep vu cua khoa hoc: dieu kien xuat ban, chan xoa khi da co
- * lich su ghi danh (ke ca ghi danh da huy), va thong ke tra ve so lieu dung.
- */
 @SpringBootTest
 @ActiveProfiles("dev")
 class CourseServiceTest {
-
     @Autowired CourseService courseService;
     @Autowired EnrollmentService enrollmentService;
     @Autowired LessonService lessonService;
@@ -50,7 +45,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.publish(empty.getId()))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("it nhat 1 bai hoc");
+                .hasMessageContaining("ít nhất 1 bài học");
     }
 
     @Test
@@ -67,13 +62,13 @@ class CourseServiceTest {
                 .fullName("Hoc vien huy").email("cancel-" + System.nanoTime() + "@t.edu").build());
 
         var enrollment = enrollmentService.enroll(new EnrollmentRequest(student.getId(), course.getId()));
-        enrollmentService.cancel(enrollment.id());          // khong con ghi danh ACTIVE nao
+        enrollmentService.cancel(enrollment.id());
 
         Long courseId = course.getId();
-        // Truoc khi sua: guard chi dem ACTIVE nen cho qua, roi vo khoa ngoai o tang CSDL
+
         assertThatThrownBy(() -> courseService.delete(courseId))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("lich su ghi danh");
+                .hasMessageContaining("lịch sử ghi danh");
 
         assertThat(courseRepository.existsById(courseId)).isTrue();
     }
@@ -87,11 +82,6 @@ class CourseServiceTest {
         assertThat(courseRepository.existsById(course.getId())).isFalse();
     }
 
-    /**
-     * Thong ke duoc cache (@Cacheable) nen test phai ghi qua tang Service - dung
-     * duong ma ung dung that di qua - de @CacheEvict co co hoi chay. Ghi thang
-     * bang repository se khong lam mat hieu luc cache.
-     */
     @Test
     void getStatistics_shouldCountPublishedAndDraftCourses() {
         var before = courseService.getStatistics();
@@ -118,8 +108,6 @@ class CourseServiceTest {
         return new CourseRequest(title, "mo ta", CourseLevel.BEGINNER, BigDecimal.ZERO,
                 30, 10, category.getId(), instructor.getId());
     }
-
-    // ----- du lieu mau -----
 
     private Course newDraftCourse(boolean withLesson) {
         Category category = categoryRepository.save(

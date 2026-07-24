@@ -7,16 +7,10 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 
-/**
- * Tap hop cac {@link Specification} de xay dung truy van loc dong cho Course.
- * Moi tieu chi la mot Specification doc lap, ghep lai bang {@code and()}.
- */
 public final class CourseSpecifications {
-
     private CourseSpecifications() {
     }
 
-    /** Tim theo tu khoa trong tieu de HOAC mo ta (khong phan biet hoa thuong). */
     public static Specification<Course> keywordLike(String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return null;

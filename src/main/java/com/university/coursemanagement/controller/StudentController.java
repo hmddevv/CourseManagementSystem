@@ -26,9 +26,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/students")
-@Tag(name = "Students", description = "Quan ly hoc vien")
+@Tag(name = "Students", description = "Quản lý học viên")
 public class StudentController {
-
     private final StudentService studentService;
 
     public StudentController(StudentService studentService) {
@@ -36,40 +35,40 @@ public class StudentController {
     }
 
     @PostMapping
-    @Operation(summary = "Them hoc vien")
+    @Operation(summary = "Thêm học viên")
     public ResponseEntity<ApiResponse<StudentResponse>> create(@Valid @RequestBody StudentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Them hoc vien thanh cong", studentService.create(request)));
+                .body(ApiResponse.ok("Thêm học viên thành công", studentService.create(request)));
     }
 
     @GetMapping
-    @Operation(summary = "Danh sach hoc vien (phan trang)")
+    @Operation(summary = "Danh sách học viên (phân trang)")
     public ApiResponse<PageResponse<StudentResponse>> getAll(
             @PageableDefault(size = 10, sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable) {
         return ApiResponse.ok(studentService.getAll(pageable));
     }
 
     @GetMapping("/all")
-    @Operation(summary = "Danh sach hoc vien gon (cho dropdown)")
+    @Operation(summary = "Danh sách học viên gọn (cho dropdown)")
     public ApiResponse<List<StudentResponse>> getAllSimple() {
         return ApiResponse.ok(studentService.getAllSimple());
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Chi tiet hoc vien")
+    @Operation(summary = "Chi tiết học viên")
     public ApiResponse<StudentResponse> getById(@PathVariable Long id) {
         return ApiResponse.ok(studentService.getById(id));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Cap nhat hoc vien")
+    @Operation(summary = "Cập nhật học viên")
     public ApiResponse<StudentResponse> update(@PathVariable Long id,
                                                @Valid @RequestBody StudentRequest request) {
-        return ApiResponse.ok("Cap nhat thanh cong", studentService.update(id, request));
+        return ApiResponse.ok("Cập nhật thành công", studentService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Xoa hoc vien")
+    @Operation(summary = "Xóa học viên")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         studentService.delete(id);
         return ResponseEntity.noContent().build();

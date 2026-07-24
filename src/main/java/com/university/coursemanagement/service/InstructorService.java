@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface InstructorService {
-
     InstructorResponse create(InstructorRequest request);
 
     InstructorResponse update(Long id, InstructorRequest request);

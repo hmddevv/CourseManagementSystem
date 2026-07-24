@@ -15,15 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Tra cuu nhat ky thao tac. Chi doc - nhat ky khong duoc phep sua hay xoa
- * qua API, neu khong thi no mat y nghia lam bang chung.
- */
 @RestController
 @RequestMapping("/api/audit-logs")
-@Tag(name = "Audit Logs", description = "Nhat ky thao tac he thong (chi doc)")
+@Tag(name = "Audit Logs", description = "Nhật ký thao tác hệ thống (chỉ đọc)")
 public class AuditLogController {
-
     private final AuditLogService auditLogService;
 
     public AuditLogController(AuditLogService auditLogService) {
@@ -31,7 +26,7 @@ public class AuditLogController {
     }
 
     @GetMapping
-    @Operation(summary = "Danh sach nhat ky thao tac (phan trang, loc theo thuc the va hanh dong)")
+    @Operation(summary = "Danh sách nhật ký thao tác (phân trang, lọc theo thực thể và hành động)")
     public ApiResponse<PageResponse<AuditLogResponse>> search(
             @RequestParam(required = false) String entityName,
             @RequestParam(required = false) AuditAction action,

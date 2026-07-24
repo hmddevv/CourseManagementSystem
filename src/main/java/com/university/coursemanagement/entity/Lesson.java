@@ -12,10 +12,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Bai hoc thuoc mot khoa hoc, sap xep theo orderIndex.
- * Quan he: Lesson N --- 1 Course (khoa ngoai course_id, bat buoc).
- */
 @Entity
 @Table(name = "lessons")
 @Getter
@@ -24,14 +20,12 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class Lesson extends BaseEntity {
-
     @Column(nullable = false, length = 200)
     private String title;
 
     @Column(length = 4000)
     private String content;
 
-    /** Thu tu bai hoc trong khoa (1, 2, 3...). */
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
 

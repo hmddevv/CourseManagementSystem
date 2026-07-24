@@ -17,25 +17,10 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-/**
- * ASPECT-ORIENTED PROGRAMMING.
- *
- * <p>Ghi nhat ky thao tac ma khong phai chen mot dong code nao vao tang Service.
- * Spring tao mot proxy quanh cac bean {@code *ServiceImpl}; khi phuong thuc ghi
- * chay xong ma khong nem exception, {@code @AfterReturning} duoc kich hoat.</p>
- *
- * <p>{@code @Order(1)} dat aspect nay NGOAI proxy giao dich (proxy giao dich co
- * do uu tien thap nhat), nen nhat ky chi duoc ghi sau khi giao dich nghiep vu da
- * commit thanh cong - khong ghi nham thao tac bi cuon nguoc.</p>
- *
- * <p>Chi audit thao tac GHI. Audit ca thao tac doc se lam phinh bang nhat ky va
- * lam cham moi request danh sach.</p>
- */
 @Aspect
 @Component
 @Order(1)
 public class AuditAspect {
-
     private static final Logger log = LoggerFactory.getLogger(AuditAspect.class);
 
     private static final String SERVICE_SUFFIX = "ServiceImpl";
@@ -47,13 +32,11 @@ public class AuditAspect {
         this.auditLogService = auditLogService;
     }
 
-    /** Moi phuong thuc public cua tang service.impl, tru chinh service ghi nhat ky. */
     @Pointcut("execution(public * com.university.coursemanagement.service.impl.*ServiceImpl.*(..)) "
             + "&& !within(com.university.coursemanagement.service.impl.AuditLogServiceImpl)")
     public void serviceLayer() {
     }
 
-    /** Chi cac phuong thuc lam thay doi du lieu. */
     @Pointcut("execution(* create*(..)) || execution(* update*(..)) || execution(* delete*(..)) "
             + "|| execution(* publish*(..)) || execution(* archive*(..)) "
             + "|| execution(* enroll*(..)) || execution(* cancel*(..)) || execution(* issue*(..))")
@@ -75,12 +58,10 @@ public class AuditAspect {
                     JpaAuditingConfig.currentActor(),
                     "%s(%s)".formatted(methodName, summarizeArgs(joinPoint.getArgs())));
         } catch (RuntimeException e) {
-            // Ghi nhat ky that bai khong duoc lam hong nghiep vu da thanh cong
-            log.warn("Khong ghi duoc nhat ky thao tac: {}", e.getMessage());
+            log.warn("Không ghi được nhật ký thao tác: {}", e.getMessage());
         }
     }
 
-    /** "CourseServiceImpl" -> "Course". */
     private String resolveEntityName(JoinPoint joinPoint) {
         String simpleName = joinPoint.getTarget().getClass().getSimpleName();
         int suffix = simpleName.indexOf(SERVICE_SUFFIX);
@@ -99,10 +80,6 @@ public class AuditAspect {
         return null;
     }
 
-    /**
-     * Lay id cua ban ghi bi tac dong: uu tien {@code id()} tren DTO tra ve
-     * (record response), neu khong co thi lay tham so Long dau tien.
-     */
     private Long resolveEntityId(JoinPoint joinPoint, Object result) {
         Long fromResult = readRecordId(result);
         if (fromResult != null) {
@@ -124,7 +101,7 @@ public class AuditAspect {
             Object value = idMethod.invoke(result);
             return value instanceof Long id ? id : null;
         } catch (ReflectiveOperationException | SecurityException e) {
-            return null;    // DTO khong co id() - khong phai loi
+            return null;
         }
     }
 
@@ -136,11 +113,6 @@ public class AuditAspect {
         return text.length() <= MAX_ARGS_LENGTH ? text : text.substring(0, MAX_ARGS_LENGTH) + "...";
     }
 
-    /**
-     * Entity khong ghi de toString nen mac dinh in ra dia chi bam
-     * (vi du {@code Enrollment@2369e44a}) - vo nghia trong nhat ky.
-     * Rut gon thanh {@code Enrollment#5}.
-     */
     private String describeArg(Object arg) {
         if (arg instanceof BaseEntity entity) {
             return "%s#%s".formatted(entity.getClass().getSimpleName(), entity.getId());

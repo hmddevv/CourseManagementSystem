@@ -25,9 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/enrollments")
-@Tag(name = "Enrollments", description = "Ghi danh, huy, cap nhat tien do hoc tap")
+@Tag(name = "Enrollments", description = "Ghi danh, hủy, cập nhật tiến độ học tập")
 public class EnrollmentController {
-
     private final EnrollmentService enrollmentService;
 
     public EnrollmentController(EnrollmentService enrollmentService) {
@@ -35,20 +34,20 @@ public class EnrollmentController {
     }
 
     @PostMapping
-    @Operation(summary = "Ghi danh hoc vien vao khoa hoc")
+    @Operation(summary = "Ghi danh học viên vào khóa học")
     public ResponseEntity<ApiResponse<EnrollmentResponse>> enroll(@Valid @RequestBody EnrollmentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Ghi danh thanh cong", enrollmentService.enroll(request)));
+                .body(ApiResponse.ok("Ghi danh thành công", enrollmentService.enroll(request)));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Chi tiet ghi danh")
+    @Operation(summary = "Chi tiết ghi danh")
     public ApiResponse<EnrollmentResponse> getById(@PathVariable Long id) {
         return ApiResponse.ok(enrollmentService.getById(id));
     }
 
     @GetMapping
-    @Operation(summary = "Danh sach ghi danh theo hoc vien HOAC khoa hoc (phan trang)")
+    @Operation(summary = "Danh sách ghi danh theo học viên HOẶC khóa học (phân trang)")
     public ApiResponse<PageResponse<EnrollmentResponse>> list(
             @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) Long courseId,
@@ -59,19 +58,19 @@ public class EnrollmentController {
         if (courseId != null) {
             return ApiResponse.ok(enrollmentService.getByCourse(courseId, pageable));
         }
-        throw new IllegalArgumentException("Can cung cap studentId hoac courseId");
+        throw new IllegalArgumentException("Cần cung cấp studentId hoặc courseId");
     }
 
     @PatchMapping("/{id}/progress")
-    @Operation(summary = "Cap nhat tien do (100% -> COMPLETED)")
+    @Operation(summary = "Cập nhật tiến độ (100% -> COMPLETED)")
     public ApiResponse<EnrollmentResponse> updateProgress(@PathVariable Long id,
                                                           @Valid @RequestBody UpdateProgressRequest request) {
-        return ApiResponse.ok("Cap nhat tien do thanh cong", enrollmentService.updateProgress(id, request));
+        return ApiResponse.ok("Cập nhật tiến độ thành công", enrollmentService.updateProgress(id, request));
     }
 
     @PatchMapping("/{id}/cancel")
-    @Operation(summary = "Huy ghi danh")
+    @Operation(summary = "Hủy ghi danh")
     public ApiResponse<EnrollmentResponse> cancel(@PathVariable Long id) {
-        return ApiResponse.ok("Huy ghi danh thanh cong", enrollmentService.cancel(id));
+        return ApiResponse.ok("Hủy ghi danh thành công", enrollmentService.cancel(id));
     }
 }

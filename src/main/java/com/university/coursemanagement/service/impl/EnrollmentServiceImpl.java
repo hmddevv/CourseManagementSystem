@@ -26,7 +26,6 @@ import java.time.LocalDateTime;
 @Service
 @Transactional(readOnly = true)
 public class EnrollmentServiceImpl implements EnrollmentService {
-
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
@@ -48,43 +47,30 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         this.certificateService = certificateService;
     }
 
-    /**
-     * Ghi danh - toan bo buoc chay trong 1 transaction. Neu bat ky kiem tra nao
-     * that bai, exception se roll back, khong tao ban ghi mo coi.
-     *
-     * <p>Course duoc nap bang khoa ghi bi quan (PESSIMISTIC_WRITE) truoc khi dem
-     * so cho da chiem. Nho vay hai request ghi danh vao cung mot khoa hoc bi
-     * serialize: request thu hai phai doi request thu nhat commit roi moi dem lai,
-     * nen khong the cung "thay con cho" va cung insert.</p>
-     */
     @Override
     @Transactional
     public EnrollmentResponse enroll(EnrollmentRequest request) {
         Student student = studentRepository.findById(request.studentId())
-                .orElseThrow(() -> ResourceNotFoundException.of("hoc vien", request.studentId()));
+                .orElseThrow(() -> ResourceNotFoundException.of("học viên", request.studentId()));
         Course course = courseRepository.findByIdForUpdate(request.courseId())
-                .orElseThrow(() -> ResourceNotFoundException.of("khoa hoc", request.courseId()));
+                .orElseThrow(() -> ResourceNotFoundException.of("khóa học", request.courseId()));
 
-        // 1) Khoa hoc phai dang mo (PUBLISHED)
         if (!course.isPublished()) {
-            throw new BusinessException("Khoa hoc chua duoc xuat ban, khong the ghi danh.");
+            throw new BusinessException("Khóa học chưa được xuất bản, không thể ghi danh.");
         }
 
-        // 2) Neu da co ghi danh ACTIVE/COMPLETED -> khong cho ghi danh lai
         Enrollment existing = enrollmentRepository
                 .findByStudentIdAndCourseId(student.getId(), course.getId())
                 .orElse(null);
         if (existing != null && existing.getStatus() != EnrollmentStatus.CANCELLED) {
-            throw new BusinessException("Hoc vien da ghi danh khoa hoc nay.");
+            throw new BusinessException("Học viên đã ghi danh khóa học này.");
         }
 
-        // 3) Con cho trong khong?
         long active = enrollmentRepository.countByCourseIdAndStatus(course.getId(), EnrollmentStatus.ACTIVE);
         if (active >= course.getCapacity()) {
-            throw new BusinessException("Khoa hoc da day (%d/%d).".formatted(active, course.getCapacity()));
+            throw new BusinessException("Khóa học đã đầy (%d/%d).".formatted(active, course.getCapacity()));
         }
 
-        // Neu co ban ghi CANCELLED cu -> kich hoat lai; nguoc lai tao moi qua Factory
         Enrollment enrollment = (existing != null)
                 ? reactivate(existing)
                 : enrollmentFactory.createActiveEnrollment(student, course);
@@ -98,26 +84,18 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     public EnrollmentResponse cancel(Long enrollmentId) {
         Enrollment enrollment = findOrThrow(enrollmentId);
         if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
-            throw new BusinessException("Ghi danh nay da bi huy truoc do.");
+            throw new BusinessException("Ghi danh này đã bị hủy trước đó.");
         }
         enrollment.setStatus(EnrollmentStatus.CANCELLED);
         return enrollmentMapper.toResponse(enrollment);
     }
 
-    /**
-     * Cap nhat tien do. Khi dat 100%, ghi danh chuyen sang COMPLETED va chung chi
-     * duoc cap ngay trong CUNG transaction - neu cap chung chi that bai thi tien do
-     * cung khong duoc luu, tranh tinh trang "da hoan thanh nhung khong co chung chi".
-     *
-     * <p>Viec cap chung chi la idempotent nen goi lai nhieu lan voi progress = 100
-     * khong tao chung chi trung.</p>
-     */
     @Override
     @Transactional
     public EnrollmentResponse updateProgress(Long enrollmentId, UpdateProgressRequest request) {
         Enrollment enrollment = findOrThrow(enrollmentId);
         if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
-            throw new BusinessException("Ghi danh da huy, khong the cap nhat tien do.");
+            throw new BusinessException("Ghi danh đã hủy, không thể cập nhật tiến độ.");
         }
         int progress = request.progressPercent();
         enrollment.setProgressPercent(progress);
@@ -142,7 +120,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Override
     public PageResponse<EnrollmentResponse> getByStudent(Long studentId, Pageable pageable) {
         if (!studentRepository.existsById(studentId)) {
-            throw ResourceNotFoundException.of("hoc vien", studentId);
+            throw ResourceNotFoundException.of("học viên", studentId);
         }
         return PageResponse.from(
                 enrollmentRepository.findByStudentId(studentId, pageable).map(enrollmentMapper::toResponse));
@@ -151,7 +129,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Override
     public PageResponse<EnrollmentResponse> getByCourse(Long courseId, Pageable pageable) {
         if (!courseRepository.existsById(courseId)) {
-            throw ResourceNotFoundException.of("khoa hoc", courseId);
+            throw ResourceNotFoundException.of("khóa học", courseId);
         }
         return PageResponse.from(
                 enrollmentRepository.findByCourseId(courseId, pageable).map(enrollmentMapper::toResponse));

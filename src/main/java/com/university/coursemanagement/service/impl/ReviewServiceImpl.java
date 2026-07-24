@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(readOnly = true)
 public class ReviewServiceImpl implements ReviewService {
-
     private final ReviewRepository reviewRepository;
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
@@ -50,23 +49,19 @@ public class ReviewServiceImpl implements ReviewService {
         this.reviewMapper = reviewMapper;
     }
 
-    /**
-     * Quy tac nghiep vu: chi hoc vien DA ghi danh khoa hoc moi duoc danh gia,
-     * va moi hoc vien chi danh gia mot lan cho moi khoa hoc.
-     */
     @Override
     @Transactional
     public ReviewResponse createReview(Long courseId, ReviewRequest request) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> ResourceNotFoundException.of("khoa hoc", courseId));
+                .orElseThrow(() -> ResourceNotFoundException.of("khóa học", courseId));
         Student student = studentRepository.findById(request.studentId())
-                .orElseThrow(() -> ResourceNotFoundException.of("hoc vien", request.studentId()));
+                .orElseThrow(() -> ResourceNotFoundException.of("học viên", request.studentId()));
 
         if (enrollmentRepository.findByStudentIdAndCourseId(student.getId(), courseId).isEmpty()) {
-            throw new BusinessException("Chi hoc vien da ghi danh khoa hoc moi duoc danh gia.");
+            throw new BusinessException("Chỉ học viên đã ghi danh khóa học mới được đánh giá.");
         }
         if (reviewRepository.existsByStudentIdAndCourseId(student.getId(), courseId)) {
-            throw new DuplicateResourceException("Hoc vien da danh gia khoa hoc nay roi.");
+            throw new DuplicateResourceException("Học viên đã đánh giá khóa học này rồi.");
         }
 
         Review review = reviewRepository.save(Review.builder()
@@ -83,7 +78,7 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewResponse updateReview(Long reviewId, ReviewRequest request) {
         Review review = findOrThrow(reviewId);
         if (!review.getStudent().getId().equals(request.studentId())) {
-            throw new BusinessException("Chi nguoi viet danh gia moi duoc sua danh gia do.");
+            throw new BusinessException("Chỉ người viết đánh giá mới được sửa đánh giá đó.");
         }
         review.setRating(request.rating());
         review.setComment(request.comment());
@@ -99,16 +94,11 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public PageResponse<ReviewResponse> getByCourse(Long courseId, Pageable pageable) {
         if (!courseRepository.existsById(courseId)) {
-            throw ResourceNotFoundException.of("khoa hoc", courseId);
+            throw ResourceNotFoundException.of("khóa học", courseId);
         }
         return PageResponse.from(reviewRepository.findByCourseId(courseId, pageable).map(reviewMapper::toResponse));
     }
 
-    /**
-     * Bang xep hang: truy van gop tra ve toan bo khoa hoc DA co danh gia (thuong it
-     * hon nhieu so voi tong so khoa hoc), sau do cat trang va chi nap thong tin hien
-     * thi cua dung cac khoa hoc trong trang do.
-     */
     @Override
     public PageResponse<CourseRatingResponse> getTopRated(Pageable pageable) {
         List<ReviewRepository.CourseRatingAggregate> ranked = reviewRepository.rankCoursesByRating();
@@ -144,13 +134,12 @@ public class ReviewServiceImpl implements ReviewService {
                 item.getTotal());
     }
 
-    /** Lam tron 1 chu so thap phan cho de doc tren giao dien (vi du 4.7). */
     private double round(Double value) {
         return value == null ? 0d : Math.round(value * 10d) / 10d;
     }
 
     private Review findOrThrow(Long id) {
         return reviewRepository.findById(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("danh gia", id));
+                .orElseThrow(() -> ResourceNotFoundException.of("đánh giá", id));
     }
 }

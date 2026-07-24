@@ -20,14 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * Nghiep vu danh muc. Cac phuong thuc ghi duoc bao boi @Transactional;
- * phuong thuc doc dung readOnly de toi uu.
- */
 @Service
 @Transactional(readOnly = true)
 public class CategoryServiceImpl implements CategoryService {
-
     private final CategoryRepository categoryRepository;
     private final CourseRepository courseRepository;
     private final CategoryMapper categoryMapper;
@@ -45,7 +40,7 @@ public class CategoryServiceImpl implements CategoryService {
     @CacheEvict(value = CacheConfig.CATEGORIES_CACHE, allEntries = true)
     public CategoryResponse create(CategoryRequest request) {
         if (categoryRepository.existsByNameIgnoreCase(request.name())) {
-            throw new DuplicateResourceException("Danh muc '%s' da ton tai".formatted(request.name()));
+            throw new DuplicateResourceException("Danh mục '%s' đã tồn tại".formatted(request.name()));
         }
         Category saved = categoryRepository.save(categoryMapper.toEntity(request));
         return categoryMapper.toResponse(saved, 0);
@@ -59,7 +54,7 @@ public class CategoryServiceImpl implements CategoryService {
         categoryRepository.findByNameIgnoreCase(request.name())
                 .filter(other -> !other.getId().equals(id))
                 .ifPresent(other -> {
-                    throw new DuplicateResourceException("Danh muc '%s' da ton tai".formatted(request.name()));
+                    throw new DuplicateResourceException("Danh mục '%s' đã tồn tại".formatted(request.name()));
                 });
         categoryMapper.updateEntity(category, request);
         long count = courseRepository.countByCategoryId(id);
@@ -80,10 +75,6 @@ public class CategoryServiceImpl implements CategoryService {
         );
     }
 
-    /**
-     * Danh sach danh muc rut gon - duoc goi o moi man hinh co dropdown nen cache lai.
-     * Cache bi xoa toan bo moi khi co thao tac ghi len danh muc, nen du lieu khong the cu.
-     */
     @Override
     @Cacheable(CacheConfig.CATEGORIES_CACHE)
     public List<CategoryResponse> getAllSimple() {
@@ -98,13 +89,13 @@ public class CategoryServiceImpl implements CategoryService {
     public void delete(Long id) {
         Category category = findOrThrow(id);
         if (courseRepository.existsByCategoryId(id)) {
-            throw new BusinessException("Khong the xoa danh muc dang co khoa hoc. Hay chuyen/xoa khoa hoc truoc.");
+            throw new BusinessException("Không thể xóa danh mục đang có khóa học. Hãy chuyển/xóa khóa học trước.");
         }
         categoryRepository.delete(category);
     }
 
     private Category findOrThrow(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("danh muc", id));
+                .orElseThrow(() -> ResourceNotFoundException.of("danh mục", id));
     }
 }

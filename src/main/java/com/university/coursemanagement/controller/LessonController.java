@@ -20,9 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@Tag(name = "Lessons", description = "Quan ly bai hoc trong khoa hoc")
+@Tag(name = "Lessons", description = "Quản lý bài học trong khóa học")
 public class LessonController {
-
     private final LessonService lessonService;
 
     public LessonController(LessonService lessonService) {
@@ -30,28 +29,28 @@ public class LessonController {
     }
 
     @PostMapping("/api/courses/{courseId}/lessons")
-    @Operation(summary = "Them bai hoc vao khoa hoc")
+    @Operation(summary = "Thêm bài học vào khóa học")
     public ResponseEntity<ApiResponse<LessonResponse>> add(@PathVariable Long courseId,
                                                            @Valid @RequestBody LessonRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Them bai hoc thanh cong", lessonService.addLesson(courseId, request)));
+                .body(ApiResponse.ok("Thêm bài học thành công", lessonService.addLesson(courseId, request)));
     }
 
     @GetMapping("/api/courses/{courseId}/lessons")
-    @Operation(summary = "Danh sach bai hoc cua khoa hoc (theo thu tu)")
+    @Operation(summary = "Danh sách bài học của khóa học (theo thứ tự)")
     public ApiResponse<List<LessonResponse>> byCourse(@PathVariable Long courseId) {
         return ApiResponse.ok(lessonService.getLessonsByCourse(courseId));
     }
 
     @PutMapping("/api/lessons/{lessonId}")
-    @Operation(summary = "Cap nhat bai hoc")
+    @Operation(summary = "Cập nhật bài học")
     public ApiResponse<LessonResponse> update(@PathVariable Long lessonId,
                                               @Valid @RequestBody LessonRequest request) {
-        return ApiResponse.ok("Cap nhat thanh cong", lessonService.updateLesson(lessonId, request));
+        return ApiResponse.ok("Cập nhật thành công", lessonService.updateLesson(lessonId, request));
     }
 
     @DeleteMapping("/api/lessons/{lessonId}")
-    @Operation(summary = "Xoa bai hoc")
+    @Operation(summary = "Xóa bài học")
     public ResponseEntity<Void> delete(@PathVariable Long lessonId) {
         lessonService.deleteLesson(lessonId);
         return ResponseEntity.noContent().build();

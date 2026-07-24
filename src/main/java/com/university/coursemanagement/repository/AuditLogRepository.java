@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
-
     Page<AuditLog> findByEntityName(String entityName, Pageable pageable);
 
     Page<AuditLog> findByAction(AuditAction action, Pageable pageable);

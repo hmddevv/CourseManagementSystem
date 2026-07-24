@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(readOnly = true)
 public class CourseServiceImpl implements CourseService {
-
     private final CourseRepository courseRepository;
     private final CategoryRepository categoryRepository;
     private final InstructorRepository instructorRepository;
@@ -95,12 +94,12 @@ public class CourseServiceImpl implements CourseService {
     public CourseResponse update(Long id, CourseRequest request) {
         Course course = findOrThrow(id);
         if (course.getStatus() == CourseStatus.ARCHIVED) {
-            throw new BusinessException("Khoa hoc da luu tru, khong the chinh sua.");
+            throw new BusinessException("Khóa học đã lưu trữ, không thể chỉnh sửa.");
         }
         long active = enrollmentRepository.countByCourseIdAndStatus(id, EnrollmentStatus.ACTIVE);
         if (request.capacity() < active) {
             throw new BusinessException(
-                    "Suc chua moi (%d) nho hon so hoc vien dang hoc (%d).".formatted(request.capacity(), active));
+                    "Sức chứa mới (%d) nhỏ hơn số học viên đang học (%d).".formatted(request.capacity(), active));
         }
         course.setTitle(request.title());
         course.setDescription(request.description());
@@ -133,15 +132,7 @@ public class CourseServiceImpl implements CourseService {
         return PageResponse.from(page.map(new CourseListMapper(page.getContent())::apply));
     }
 
-    /**
-     * Map ca trang khoa hoc sang DTO voi so truy van co dinh (khong phu thuoc so dong).
-     *
-     * <p>Cach cu goi countByCourseId + countByCourseIdAndStatus cho TUNG dong nen
-     * mot trang 10 khoa hoc sinh 20 truy van dem. O day dem san mot lan cho ca trang
-     * bang 2 truy van GROUP BY, sau do tra cuu trong Map.</p>
-     */
     private final class CourseListMapper {
-
         private final Map<Long, Long> lessonCounts;
         private final Map<Long, Long> activeEnrollmentCounts;
         private final Map<Long, ReviewRepository.CourseRatingAggregate> ratings;
@@ -185,10 +176,10 @@ public class CourseServiceImpl implements CourseService {
     public CourseResponse publish(Long id) {
         Course course = findOrThrow(id);
         if (course.getStatus() == CourseStatus.PUBLISHED) {
-            throw new BusinessException("Khoa hoc da o trang thai PUBLISHED.");
+            throw new BusinessException("Khóa học đã ở trạng thái PUBLISHED.");
         }
         if (lessonRepository.countByCourseId(id) == 0) {
-            throw new BusinessException("Phai co it nhat 1 bai hoc truoc khi xuat ban khoa hoc.");
+            throw new BusinessException("Phải có ít nhất 1 bài học trước khi xuất bản khóa học.");
         }
         course.setStatus(CourseStatus.PUBLISHED);
         return toResponse(course);
@@ -208,26 +199,19 @@ public class CourseServiceImpl implements CourseService {
     @CacheEvict(value = CacheConfig.COURSE_STATISTICS_CACHE, allEntries = true)
     public void delete(Long id) {
         Course course = findOrThrow(id);
-        // Chan xoa khi con BAT KY lich su ghi danh nao, khong chi rieng ACTIVE:
-        // Course.enrollments khong cascade nen ban ghi CANCELLED/COMPLETED van giu
-        // khoa ngoai NOT NULL -> xoa se vo FK va tra ve loi ky thuat kho hieu.
+
         if (enrollmentRepository.existsByCourseId(id)) {
             throw new BusinessException(
-                    "Khoa hoc da co lich su ghi danh, khong the xoa. Hay dung chuc nang luu tru (archive).");
+                    "Khóa học đã có lịch sử ghi danh, không thể xóa. Hãy dùng chức năng lưu trữ (archive).");
         }
         courseRepository.delete(course);
     }
 
-    /**
-     * Thong ke dashboard - tong hop tu nhieu truy van nen ton kem, nhung du lieu
-     * chi doi khi co thao tac ghi len khoa hoc. Cache lai va xoa cache o cac ham ghi.
-     */
     @Override
     @Cacheable(CacheConfig.COURSE_STATISTICS_CACHE)
     public CourseStatisticsResponse getStatistics() {
         long total = courseRepository.count();
-        // Dung count(spec) cua JpaSpecificationExecutor: SELECT COUNT(*) chay ngay tren DB,
-        // thay vi findAll(spec).size() von tai toan bo entity vao bo nho chi de dem.
+
         long published = courseRepository.count(CourseSpecifications.hasStatus(CourseStatus.PUBLISHED));
         long draft = courseRepository.count(CourseSpecifications.hasStatus(CourseStatus.DRAFT));
 
@@ -252,8 +236,6 @@ public class CourseServiceImpl implements CourseService {
                 total, published, draft, studentRepository.count(), totalActive, popular);
     }
 
-    // ----- helpers -----
-
     private CourseResponse toResponse(Course course) {
         int lessonCount = (int) lessonRepository.countByCourseId(course.getId());
         long active = enrollmentRepository.countByCourseIdAndStatus(course.getId(), EnrollmentStatus.ACTIVE);
@@ -264,23 +246,22 @@ public class CourseServiceImpl implements CourseService {
                 rating == null ? 0L : rating.getTotal());
     }
 
-    /** Lam tron diem trung binh ve 1 chu so thap phan cho de doc tren giao dien. */
     private double roundRating(Double average) {
         return average == null ? 0d : Math.round(average * 10d) / 10d;
     }
 
     private Course findOrThrow(Long id) {
         return courseRepository.findById(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("khoa hoc", id));
+                .orElseThrow(() -> ResourceNotFoundException.of("khóa học", id));
     }
 
     private Category loadCategory(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("danh muc", id));
+                .orElseThrow(() -> ResourceNotFoundException.of("danh mục", id));
     }
 
     private Instructor loadInstructor(Long id) {
         return instructorRepository.findById(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("giang vien", id));
+                .orElseThrow(() -> ResourceNotFoundException.of("giảng viên", id));
     }
 }

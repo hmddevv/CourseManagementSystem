@@ -13,10 +13,6 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Danh muc khoa hoc (vi du: Lap trinh, Ngoai ngu, Thiet ke...).
- * Quan he: Category 1 --- N Course.
- */
 @Entity
 @Table(name = "categories")
 @Getter
@@ -25,7 +21,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Category extends BaseEntity {
-
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 

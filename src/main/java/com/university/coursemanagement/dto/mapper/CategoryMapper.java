@@ -5,10 +5,8 @@ import com.university.coursemanagement.dto.response.CategoryResponse;
 import com.university.coursemanagement.entity.Category;
 import org.springframework.stereotype.Component;
 
-/** Chuyen doi giua Category entity va cac DTO. Giu Entity tach biet khoi API. */
 @Component
 public class CategoryMapper {
-
     public Category toEntity(CategoryRequest request) {
         return Category.builder()
                 .name(request.name())

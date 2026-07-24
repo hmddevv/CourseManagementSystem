@@ -6,19 +6,19 @@ import jakarta.validation.constraints.Size;
 
 public record InstructorRequest(
 
-        @NotBlank(message = "Ho ten giang vien khong duoc de trong")
-        @Size(max = 150, message = "Ho ten toi da 150 ky tu")
+        @NotBlank(message = "Họ tên giảng viên không được để trống")
+        @Size(max = 150, message = "Họ tên tối đa 150 ký tự")
         String fullName,
 
-        @NotBlank(message = "Email khong duoc de trong")
-        @Email(message = "Email khong hop le")
+        @NotBlank(message = "Email không được để trống")
+        @Email(message = "Email không hợp lệ")
         @Size(max = 150)
         String email,
 
-        @Size(max = 100, message = "Chuyen mon toi da 100 ky tu")
+        @Size(max = 100, message = "Chuyên môn tối đa 100 ký tự")
         String expertise,
 
-        @Size(max = 1000, message = "Gioi thieu toi da 1000 ky tu")
+        @Size(max = 1000, message = "Giới thiệu tối đa 1000 ký tự")
         String bio
 ) {
 }

@@ -15,15 +15,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Tra cuu chung chi. Khong co endpoint tao chung chi: chung chi duoc cap
- * tu dong khi hoc vien hoan thanh 100% tien do, khong cap thu cong duoc.
- */
 @RestController
 @RequestMapping("/api/certificates")
-@Tag(name = "Certificates", description = "Tra cuu chung chi hoan thanh khoa hoc")
+@Tag(name = "Certificates", description = "Tra cứu chứng chỉ hoàn thành khóa học")
 public class CertificateController {
-
     private final CertificateService certificateService;
 
     public CertificateController(CertificateService certificateService) {
@@ -31,13 +26,13 @@ public class CertificateController {
     }
 
     @GetMapping("/{code}")
-    @Operation(summary = "Tra cuu chung chi theo ma")
+    @Operation(summary = "Tra cứu chứng chỉ theo mã")
     public ApiResponse<CertificateResponse> getByCode(@PathVariable String code) {
         return ApiResponse.ok(certificateService.getByCode(code));
     }
 
     @GetMapping("/students/{studentId}")
-    @Operation(summary = "Danh sach chung chi cua mot hoc vien (phan trang)")
+    @Operation(summary = "Danh sách chứng chỉ của một học viên (phân trang)")
     public ApiResponse<PageResponse<CertificateResponse>> getByStudent(
             @PathVariable Long studentId,
             @PageableDefault(size = 10, sort = "issuedAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -45,7 +40,7 @@ public class CertificateController {
     }
 
     @GetMapping("/enrollments/{enrollmentId}")
-    @Operation(summary = "Chung chi cua mot ghi danh (404 neu chua hoan thanh)")
+    @Operation(summary = "Chứng chỉ của một ghi danh (404 nếu chưa hoàn thành)")
     public ResponseEntity<ApiResponse<CertificateResponse>> getByEnrollment(@PathVariable Long enrollmentId) {
         return certificateService.findByEnrollment(enrollmentId)
                 .map(certificate -> ResponseEntity.ok(ApiResponse.ok(certificate)))

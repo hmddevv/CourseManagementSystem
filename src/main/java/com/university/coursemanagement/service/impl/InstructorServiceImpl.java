@@ -20,7 +20,6 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 public class InstructorServiceImpl implements InstructorService {
-
     private final InstructorRepository instructorRepository;
     private final CourseRepository courseRepository;
     private final InstructorMapper instructorMapper;
@@ -37,7 +36,7 @@ public class InstructorServiceImpl implements InstructorService {
     @Transactional
     public InstructorResponse create(InstructorRequest request) {
         if (instructorRepository.existsByEmailIgnoreCase(request.email())) {
-            throw new DuplicateResourceException("Email '%s' da duoc su dung".formatted(request.email()));
+            throw new DuplicateResourceException("Email '%s' đã được sử dụng".formatted(request.email()));
         }
         Instructor saved = instructorRepository.save(instructorMapper.toEntity(request));
         return instructorMapper.toResponse(saved, 0);
@@ -49,7 +48,7 @@ public class InstructorServiceImpl implements InstructorService {
         Instructor instructor = findOrThrow(id);
         if (!instructor.getEmail().equalsIgnoreCase(request.email())
                 && instructorRepository.existsByEmailIgnoreCase(request.email())) {
-            throw new DuplicateResourceException("Email '%s' da duoc su dung".formatted(request.email()));
+            throw new DuplicateResourceException("Email '%s' đã được sử dụng".formatted(request.email()));
         }
         instructorMapper.updateEntity(instructor, request);
         return toResponse(instructor);
@@ -75,21 +74,17 @@ public class InstructorServiceImpl implements InstructorService {
     public void delete(Long id) {
         Instructor instructor = findOrThrow(id);
         if (courseRepository.existsByInstructorId(id)) {
-            throw new BusinessException("Khong the xoa giang vien dang phu trach khoa hoc.");
+            throw new BusinessException("Không thể xóa giảng viên đang phụ trách khóa học.");
         }
         instructorRepository.delete(instructor);
     }
 
-    /**
-     * Dem so khoa hoc bang count query thay vi goi {@code instructor.getCourses().size()}
-     * tren collection LAZY - cach cu sinh 1 SELECT rieng cho tung giang vien (N+1).
-     */
     private InstructorResponse toResponse(Instructor instructor) {
         return instructorMapper.toResponse(instructor, courseRepository.countByInstructorId(instructor.getId()));
     }
 
     private Instructor findOrThrow(Long id) {
         return instructorRepository.findById(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("giang vien", id));
+                .orElseThrow(() -> ResourceNotFoundException.of("giảng viên", id));
     }
 }

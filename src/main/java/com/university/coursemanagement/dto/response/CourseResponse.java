@@ -6,10 +6,6 @@ import com.university.coursemanagement.entity.enums.CourseStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Du lieu tra ve cho khoa hoc, da lam giau them thong tin dan xuat
- * (ten danh muc, ten giang vien, so bai hoc, so cho con trong, diem danh gia).
- */
 public record CourseResponse(
         Long id,
         String title,

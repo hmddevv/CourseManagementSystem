@@ -23,16 +23,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Khoa hoc - entity trung tam cua he thong.
- * Quan he:
- * <ul>
- *   <li>Course N --- 1 Category  (khoa ngoai category_id, bat buoc)</li>
- *   <li>Course N --- 1 Instructor(khoa ngoai instructor_id, bat buoc)</li>
- *   <li>Course 1 --- N Lesson     (cascade: xoa khoa hoc -> xoa bai hoc)</li>
- *   <li>Course 1 --- N Enrollment (ghi danh cua hoc vien)</li>
- * </ul>
- */
 @Entity
 @Table(name = "courses")
 @Getter
@@ -41,7 +31,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Course extends BaseEntity {
-
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -61,7 +50,6 @@ public class Course extends BaseEntity {
     @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
 
-    /** So hoc vien toi da co the ghi danh (ACTIVE). */
     @Column(nullable = false)
     private Integer capacity;
 
@@ -85,9 +73,6 @@ public class Course extends BaseEntity {
     @Builder.Default
     private List<Enrollment> enrollments = new ArrayList<>();
 
-    // ----- Domain helpers -----
-
-    /** Them mot bai hoc va giu dong bo hai chieu. */
     public void addLesson(Lesson lesson) {
         lessons.add(lesson);
         lesson.setCourse(this);

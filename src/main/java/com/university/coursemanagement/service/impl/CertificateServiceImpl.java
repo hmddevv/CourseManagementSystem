@@ -21,7 +21,6 @@ import java.util.Optional;
 @Service
 @Transactional(readOnly = true)
 public class CertificateServiceImpl implements CertificateService {
-
     private final CertificateRepository certificateRepository;
     private final StudentRepository studentRepository;
     private final CertificateFactory certificateFactory;
@@ -37,20 +36,11 @@ public class CertificateServiceImpl implements CertificateService {
         this.certificateMapper = certificateMapper;
     }
 
-    /**
-     * Cap chung chi. Ham nay <b>idempotent</b>: goi lai tren cung mot ghi danh
-     * tra ve chung chi da co thay vi nem loi hay tao ban ghi thu hai. Nho vay
-     * viec cap nhat tien do len 100% nhieu lan khong sinh chung chi trung.
-     *
-     * <p>Khong mo transaction rieng - chay trong transaction cua ham goi
-     * (cap nhat tien do), nen neu buoc nao do that bai thi chung chi cung
-     * duoc cuon nguoc theo.</p>
-     */
     @Override
     @Transactional
     public CertificateResponse issueFor(Enrollment enrollment) {
         if (enrollment.getStatus() != EnrollmentStatus.COMPLETED) {
-            throw new BusinessException("Chi cap chung chi khi ghi danh da hoan thanh 100%.");
+            throw new BusinessException("Chỉ cấp chứng chỉ khi ghi danh đã hoàn thành 100%.");
         }
         return certificateRepository.findByEnrollmentId(enrollment.getId())
                 .map(certificateMapper::toResponse)
@@ -64,7 +54,7 @@ public class CertificateServiceImpl implements CertificateService {
     public CertificateResponse getByCode(String code) {
         return certificateRepository.findByCode(code)
                 .map(certificateMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Khong tim thay chung chi co ma '%s'".formatted(code)));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chứng chỉ có mã '%s'".formatted(code)));
     }
 
     @Override
@@ -75,7 +65,7 @@ public class CertificateServiceImpl implements CertificateService {
     @Override
     public PageResponse<CertificateResponse> getByStudent(Long studentId, Pageable pageable) {
         if (!studentRepository.existsById(studentId)) {
-            throw ResourceNotFoundException.of("hoc vien", studentId);
+            throw ResourceNotFoundException.of("học viên", studentId);
         }
         return PageResponse.from(
                 certificateRepository.findByEnrollmentStudentId(studentId, pageable).map(certificateMapper::toResponse));

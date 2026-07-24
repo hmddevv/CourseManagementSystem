@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface CategoryService {
-
     CategoryResponse create(CategoryRequest request);
 
     CategoryResponse update(Long id, CategoryRequest request);
@@ -17,7 +16,6 @@ public interface CategoryService {
 
     PageResponse<CategoryResponse> getAll(Pageable pageable);
 
-    /** Danh sach gon (khong phan trang) - phuc vu dropdown o frontend. */
     List<CategoryResponse> getAllSimple();
 
     void delete(Long id);

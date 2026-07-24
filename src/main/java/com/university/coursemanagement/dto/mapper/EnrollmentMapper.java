@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class EnrollmentMapper {
-
     public EnrollmentResponse toResponse(Enrollment enrollment) {
         return new EnrollmentResponse(
                 enrollment.getId(),

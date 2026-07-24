@@ -4,7 +4,6 @@ import com.university.coursemanagement.entity.enums.AuditAction;
 
 import java.time.LocalDateTime;
 
-/** Mot dong nhat ky thao tac tra ve cho client. */
 public record AuditLogResponse(
         Long id,
         String entityName,

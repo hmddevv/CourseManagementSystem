@@ -24,14 +24,9 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Kiem tra quy tac nghiep vu quan trong nhat: khoa hoc day thi khong cho
- * ghi danh them, va khong ghi danh khoa hoc chua PUBLISHED.
- */
 @SpringBootTest
 @ActiveProfiles("dev")
 class EnrollmentServiceTest {
-
     @Autowired EnrollmentService enrollmentService;
     @Autowired CategoryRepository categoryRepository;
     @Autowired InstructorRepository instructorRepository;
@@ -56,15 +51,13 @@ class EnrollmentServiceTest {
         Student s2 = studentRepository.save(Student.builder()
                 .fullName("HV2").email("hv2-" + System.nanoTime() + "@t.edu").build());
 
-        // Cho dau tien: OK
         var ok = enrollmentService.enroll(new EnrollmentRequest(s1.getId(), course.getId()));
         assertThat(ok.id()).isNotNull();
 
-        // Cho thu hai: khoa da day (capacity = 1)
         Long courseId = course.getId();
         assertThatThrownBy(() -> enrollmentService.enroll(new EnrollmentRequest(s2.getId(), courseId)))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("da day");
+                .hasMessageContaining("đã đầy");
     }
 
     @Test
@@ -81,6 +74,6 @@ class EnrollmentServiceTest {
         Long courseId = draft.getId();
         assertThatThrownBy(() -> enrollmentService.enroll(new EnrollmentRequest(s.getId(), courseId)))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("chua duoc xuat ban");
+                .hasMessageContaining("chưa được xuất bản");
     }
 }

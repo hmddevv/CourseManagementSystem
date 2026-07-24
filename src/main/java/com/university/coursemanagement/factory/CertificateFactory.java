@@ -8,21 +8,10 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * FACTORY PATTERN.
- *
- * <p>Tap trung quy tac tao chung chi vao mot noi: dinh dang ma, thoi diem cap,
- * va viec "chup" ten hoc vien / ten khoa hoc tai thoi diem cap. Service chi can
- * goi mot phuong thuc, neu quy tac sinh ma thay doi thi chi sua o day.</p>
- *
- * <p>Ma co dang {@code CERT-{courseId}-{studentId}-{yyyyMMdd}-{6 ky tu}}. Phan
- * ngau nhien dung {@link SecureRandom} de khong doan duoc ma cua nguoi khac.</p>
- */
 @Component
 public class CertificateFactory {
-
     private static final DateTimeFormatter DATE_PART = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final String ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";  // bo ky tu de nham: I O 0 1
+    private static final String ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int RANDOM_LENGTH = 6;
 
     private final SecureRandom random = new SecureRandom();

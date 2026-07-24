@@ -3,17 +3,13 @@ package com.university.coursemanagement.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-/**
- * Du lieu dau vao tao/cap nhat danh muc.
- * Dung Java record cho DTO: bat bien, gon, tach biet hoan toan voi Entity.
- */
 public record CategoryRequest(
 
-        @NotBlank(message = "Ten danh muc khong duoc de trong")
-        @Size(max = 100, message = "Ten danh muc toi da 100 ky tu")
+        @NotBlank(message = "Tên danh mục không được để trống")
+        @Size(max = 100, message = "Tên danh mục tối đa 100 ký tự")
         String name,
 
-        @Size(max = 500, message = "Mo ta toi da 500 ky tu")
+        @Size(max = 500, message = "Mô tả tối đa 500 ký tự")
         String description
 ) {
 }

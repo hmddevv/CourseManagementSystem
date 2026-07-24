@@ -33,9 +33,8 @@ import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/courses")
-@Tag(name = "Courses", description = "Quan ly khoa hoc: CRUD, tim kiem, xuat ban, thong ke")
+@Tag(name = "Courses", description = "Quản lý khóa học: CRUD, tìm kiếm, xuất bản, thống kê")
 public class CourseController {
-
     private final CourseService courseService;
 
     public CourseController(CourseService courseService) {
@@ -43,17 +42,17 @@ public class CourseController {
     }
 
     @PostMapping
-    @Operation(summary = "Tao khoa hoc moi (trang thai mac dinh DRAFT)")
+    @Operation(summary = "Tạo khóa học mới (trạng thái mặc định DRAFT)")
     public ResponseEntity<ApiResponse<CourseResponse>> create(@Valid @RequestBody CourseRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Tao khoa hoc thanh cong", courseService.create(request)));
+                .body(ApiResponse.ok("Tạo khóa học thành công", courseService.create(request)));
     }
 
     @GetMapping
-    @Operation(summary = "Tim kiem + loc + phan trang + sap xep khoa hoc",
-            description = "Vi du sort: ?sort=price,desc&sort=title,asc. Cac tham so loc deu tuy chon.")
+    @Operation(summary = "Tìm kiếm + lọc + phân trang + sắp xếp khóa học",
+            description = "Ví dụ sort: ?sort=price,desc&sort=title,asc. Các tham số lọc đều tùy chọn.")
     public ApiResponse<PageResponse<CourseResponse>> search(
-            @Parameter(description = "Tu khoa trong tieu de/mo ta") @RequestParam(required = false) String keyword,
+            @Parameter(description = "Từ khóa trong tiêu đề/mô tả") @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long instructorId,
             @RequestParam(required = false) CourseLevel level,
@@ -61,45 +60,44 @@ public class CourseController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-
         CourseSearchCriteria criteria = new CourseSearchCriteria(
                 keyword, categoryId, instructorId, level, status, minPrice, maxPrice);
         return ApiResponse.ok(courseService.search(criteria, pageable));
     }
 
     @GetMapping("/statistics")
-    @Operation(summary = "Thong ke tong hop cho dashboard")
+    @Operation(summary = "Thống kê tổng hợp cho dashboard")
     public ApiResponse<CourseStatisticsResponse> statistics() {
         return ApiResponse.ok(courseService.getStatistics());
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Chi tiet khoa hoc")
+    @Operation(summary = "Chi tiết khóa học")
     public ApiResponse<CourseResponse> getById(@PathVariable Long id) {
         return ApiResponse.ok(courseService.getById(id));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Cap nhat khoa hoc")
+    @Operation(summary = "Cập nhật khóa học")
     public ApiResponse<CourseResponse> update(@PathVariable Long id,
                                               @Valid @RequestBody CourseRequest request) {
-        return ApiResponse.ok("Cap nhat thanh cong", courseService.update(id, request));
+        return ApiResponse.ok("Cập nhật thành công", courseService.update(id, request));
     }
 
     @PatchMapping("/{id}/publish")
-    @Operation(summary = "Xuat ban khoa hoc (DRAFT -> PUBLISHED, can >= 1 bai hoc)")
+    @Operation(summary = "Xuất bản khóa học (DRAFT -> PUBLISHED, cần >= 1 bài học)")
     public ApiResponse<CourseResponse> publish(@PathVariable Long id) {
-        return ApiResponse.ok("Xuat ban thanh cong", courseService.publish(id));
+        return ApiResponse.ok("Xuất bản thành công", courseService.publish(id));
     }
 
     @PatchMapping("/{id}/archive")
-    @Operation(summary = "Luu tru khoa hoc (-> ARCHIVED)")
+    @Operation(summary = "Lưu trữ khóa học (-> ARCHIVED)")
     public ApiResponse<CourseResponse> archive(@PathVariable Long id) {
-        return ApiResponse.ok("Luu tru thanh cong", courseService.archive(id));
+        return ApiResponse.ok("Lưu trữ thành công", courseService.archive(id));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Xoa khoa hoc (chi khi khong co hoc vien dang hoc)")
+    @Operation(summary = "Xóa khóa học (chỉ khi không có học viên đang học)")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         courseService.delete(id);
         return ResponseEntity.noContent().build();

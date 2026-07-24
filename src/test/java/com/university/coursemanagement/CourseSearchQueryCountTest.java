@@ -29,22 +29,12 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Chan hoi quy N+1 tren endpoint tim kiem khoa hoc.
- *
- * <p>Y tuong: so truy vấn SQL cua mot trang ket qua phai la HANG SO, khong duoc
- * tang theo so dong trong trang. Truoc khi toi uu, moi khoa hoc sinh them 4 truy van
- * (category, instructor, dem bai hoc, dem ghi danh) nen trang 10 dong ton toi 41 truy van.
- * Sau khi dung {@code @EntityGraph} + 2 truy van GROUP BY dem san cho ca trang,
- * con lai 4 truy van bat ke trang co bao nhieu dong.</p>
- */
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:querycountdb;DB_CLOSE_DELAY=-1;MODE=MySQL",
         "spring.jpa.properties.hibernate.generate_statistics=true"
 })
 @ActiveProfiles("dev")
 class CourseSearchQueryCountTest {
-
     private static final int SEEDED_COURSES = 12;
 
     @Autowired CourseService courseService;
@@ -71,7 +61,6 @@ class CourseSearchQueryCountTest {
         long queriesForFiveRows = countQueriesForSearch(5);
         long queriesForTenRows = countQueriesForSearch(10);
 
-        // So truy van khong tang khi so dong tang gap doi -> khong con N+1
         assertThat(queriesForTenRows).isEqualTo(queriesForFiveRows);
         assertThat(queriesForTenRows).isLessThanOrEqualTo(6);
     }

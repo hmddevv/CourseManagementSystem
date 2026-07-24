@@ -26,9 +26,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/instructors")
-@Tag(name = "Instructors", description = "Quan ly giang vien")
+@Tag(name = "Instructors", description = "Quản lý giảng viên")
 public class InstructorController {
-
     private final InstructorService instructorService;
 
     public InstructorController(InstructorService instructorService) {
@@ -36,40 +35,40 @@ public class InstructorController {
     }
 
     @PostMapping
-    @Operation(summary = "Them giang vien")
+    @Operation(summary = "Thêm giảng viên")
     public ResponseEntity<ApiResponse<InstructorResponse>> create(@Valid @RequestBody InstructorRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Them giang vien thanh cong", instructorService.create(request)));
+                .body(ApiResponse.ok("Thêm giảng viên thành công", instructorService.create(request)));
     }
 
     @GetMapping
-    @Operation(summary = "Danh sach giang vien (phan trang)")
+    @Operation(summary = "Danh sách giảng viên (phân trang)")
     public ApiResponse<PageResponse<InstructorResponse>> getAll(
             @PageableDefault(size = 10, sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable) {
         return ApiResponse.ok(instructorService.getAll(pageable));
     }
 
     @GetMapping("/all")
-    @Operation(summary = "Danh sach giang vien gon (cho dropdown)")
+    @Operation(summary = "Danh sách giảng viên gọn (cho dropdown)")
     public ApiResponse<List<InstructorResponse>> getAllSimple() {
         return ApiResponse.ok(instructorService.getAllSimple());
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Chi tiet giang vien")
+    @Operation(summary = "Chi tiết giảng viên")
     public ApiResponse<InstructorResponse> getById(@PathVariable Long id) {
         return ApiResponse.ok(instructorService.getById(id));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Cap nhat giang vien")
+    @Operation(summary = "Cập nhật giảng viên")
     public ApiResponse<InstructorResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody InstructorRequest request) {
-        return ApiResponse.ok("Cap nhat thanh cong", instructorService.update(id, request));
+        return ApiResponse.ok("Cập nhật thành công", instructorService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Xoa giang vien (chi khi khong phu trach khoa hoc)")
+    @Operation(summary = "Xóa giảng viên (chỉ khi không phụ trách khóa học)")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         instructorService.delete(id);
         return ResponseEntity.noContent().build();

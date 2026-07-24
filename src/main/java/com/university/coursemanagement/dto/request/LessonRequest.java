@@ -7,18 +7,18 @@ import jakarta.validation.constraints.Size;
 
 public record LessonRequest(
 
-        @NotBlank(message = "Tieu de bai hoc khong duoc de trong")
-        @Size(max = 200, message = "Tieu de toi da 200 ky tu")
+        @NotBlank(message = "Tiêu đề bài học không được để trống")
+        @Size(max = 200, message = "Tiêu đề tối đa 200 ký tự")
         String title,
 
-        @Size(max = 4000, message = "Noi dung toi da 4000 ky tu")
+        @Size(max = 4000, message = "Nội dung tối đa 4000 ký tự")
         String content,
 
-        @NotNull(message = "Thu tu bai hoc khong duoc de trong")
-        @Min(value = 1, message = "Thu tu bai hoc phai >= 1")
+        @NotNull(message = "Thứ tự bài học không được để trống")
+        @Min(value = 1, message = "Thứ tự bài học phải >= 1")
         Integer orderIndex,
 
-        @Min(value = 0, message = "Thoi luong phai >= 0")
+        @Min(value = 0, message = "Thời lượng phải >= 0")
         Integer durationMinutes
 ) {
 }

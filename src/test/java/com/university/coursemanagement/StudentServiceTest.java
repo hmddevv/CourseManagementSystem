@@ -27,14 +27,9 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Kiem tra quy tac nghiep vu cua hoc vien: khong xoa hoc vien con lich su ghi danh,
- * khong trung email, va so ghi danh tra ve dung.
- */
 @SpringBootTest
 @ActiveProfiles("dev")
 class StudentServiceTest {
-
     @Autowired StudentService studentService;
     @Autowired EnrollmentService enrollmentService;
     @Autowired StudentRepository studentRepository;
@@ -51,10 +46,10 @@ class StudentServiceTest {
         enrollmentService.enroll(new EnrollmentRequest(student.getId(), course.getId()));
 
         Long studentId = student.getId();
-        // Phai la loi NGHIEP VU ro rang, khong phai loi rang buoc khoa ngoai chung chung
+
         assertThatThrownBy(() -> studentService.delete(studentId))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("lich su ghi danh");
+                .hasMessageContaining("lịch sử ghi danh");
 
         assertThat(studentRepository.existsById(studentId)).isTrue();
     }

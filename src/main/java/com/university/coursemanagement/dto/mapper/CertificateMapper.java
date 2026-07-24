@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CertificateMapper {
-
     public CertificateResponse toResponse(Certificate certificate) {
         return new CertificateResponse(
                 certificate.getId(),

@@ -11,40 +11,35 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-/**
- * Du lieu dau vao tao/cap nhat khoa hoc.
- * Trang thai (status) khong nam o day - duoc dieu khien qua nghiep vu
- * publish/archive rieng de dam bao rang buoc (vi du: phai co bai hoc moi publish).
- */
 public record CourseRequest(
 
-        @NotBlank(message = "Tieu de khoa hoc khong duoc de trong")
-        @Size(max = 200, message = "Tieu de toi da 200 ky tu")
+        @NotBlank(message = "Tiêu đề khóa học không được để trống")
+        @Size(max = 200, message = "Tiêu đề tối đa 200 ký tự")
         String title,
 
-        @Size(max = 2000, message = "Mo ta toi da 2000 ky tu")
+        @Size(max = 2000, message = "Mô tả tối đa 2000 ký tự")
         String description,
 
-        @NotNull(message = "Trinh do khong duoc de trong")
+        @NotNull(message = "Trình độ không được để trống")
         CourseLevel level,
 
-        @NotNull(message = "Gia khong duoc de trong")
-        @DecimalMin(value = "0.0", message = "Gia phai >= 0")
-        @Digits(integer = 10, fraction = 2, message = "Gia khong hop le")
+        @NotNull(message = "Giá không được để trống")
+        @DecimalMin(value = "0.0", message = "Giá phải >= 0")
+        @Digits(integer = 10, fraction = 2, message = "Giá không hợp lệ")
         BigDecimal price,
 
-        @NotNull(message = "Suc chua khong duoc de trong")
-        @Min(value = 1, message = "Suc chua phai >= 1")
-        @Max(value = 100000, message = "Suc chua qua lon")
+        @NotNull(message = "Sức chứa không được để trống")
+        @Min(value = 1, message = "Sức chứa phải >= 1")
+        @Max(value = 100000, message = "Sức chứa quá lớn")
         Integer capacity,
 
-        @Min(value = 0, message = "Thoi luong phai >= 0")
+        @Min(value = 0, message = "Thời lượng phải >= 0")
         Integer durationHours,
 
-        @NotNull(message = "categoryId khong duoc de trong")
+        @NotNull(message = "categoryId không được để trống")
         Long categoryId,
 
-        @NotNull(message = "instructorId khong duoc de trong")
+        @NotNull(message = "instructorId không được để trống")
         Long instructorId
 ) {
 }

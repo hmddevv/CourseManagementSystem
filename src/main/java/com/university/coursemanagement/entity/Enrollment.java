@@ -18,13 +18,6 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/**
- * Ghi danh - bang trung gian giua Student va Course (quan he N--N), nhung
- * mang them du lieu nghiep vu (trang thai, tien do, thoi diem hoan thanh).
- *
- * <p>Rang buoc duy nhat (student_id, course_id): mot hoc vien khong the co hai
- * ban ghi ghi danh cho cung mot khoa hoc.</p>
- */
 @Entity
 @Table(
         name = "enrollments",
@@ -39,7 +32,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class Enrollment extends BaseEntity {
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
@@ -56,7 +48,6 @@ public class Enrollment extends BaseEntity {
     @Builder.Default
     private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
 
-    /** Tien do hoc tap 0..100 (%). */
     @Column(name = "progress_percent", nullable = false)
     @Builder.Default
     private Integer progressPercent = 0;

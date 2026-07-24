@@ -31,26 +31,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Chung minh khoa ghi bi quan (PESSIMISTIC_WRITE) chan duoc race condition khi
- * nhieu hoc vien cung ghi danh vao cho trong cuoi cung.
- *
- * <p>Truoc khi sua: buoc "dem so cho da chiem" va buoc "insert" khong duoc bao ve,
- * nen nhieu luong cung doc thay con cho va cung ghi thanh cong -> vuot suc chua.
- * Test nay se THAT BAI voi code cu va PASS voi code da sua.</p>
- *
- * <p>Luu y: {@code @Version} tren BaseEntity KHONG cuu duoc tinh huong nay vi no
- * chi chong ghi de tren chinh ban ghi Course, khong bao ve dieu kien dem tren
- * bang enrollments.</p>
- */
 @SpringBootTest(properties = {
-        // Tang thoi gian cho khoa cua H2 de cac luong xep hang thay vi bao loi timeout
         "spring.datasource.url=jdbc:h2:mem:concurrencydb;DB_CLOSE_DELAY=-1;MODE=MySQL;LOCK_TIMEOUT=20000",
         "spring.datasource.hikari.maximum-pool-size=16"
 })
 @ActiveProfiles("dev")
 class EnrollmentConcurrencyTest {
-
     private static final int THREADS = 8;
 
     @Autowired EnrollmentService enrollmentService;
@@ -86,7 +72,7 @@ class EnrollmentConcurrencyTest {
             });
         }
 
-        startGate.countDown();                                  // ban tat ca cung luc
+        startGate.countDown();
         assertThat(finishGate.await(60, TimeUnit.SECONDS)).isTrue();
         pool.shutdown();
 
@@ -94,10 +80,8 @@ class EnrollmentConcurrencyTest {
 
         assertThat(succeeded.get()).isEqualTo(1);
         assertThat(rejected.get()).isEqualTo(THREADS - 1);
-        assertThat(active).isEqualTo(1);                        // khong bao gio vuot capacity
+        assertThat(active).isEqualTo(1);
     }
-
-    // ----- du lieu mau -----
 
     private Course givenPublishedCourseWithCapacity(int capacity) {
         Category category = categoryRepository.save(

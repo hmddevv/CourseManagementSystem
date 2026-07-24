@@ -16,13 +16,9 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Kiem tra hai tinh nang cross-cutting: cache va nhat ky thao tac (AOP).
- */
 @SpringBootTest
 @ActiveProfiles("dev")
 class CacheAndAuditTest {
-
     @Autowired CategoryService categoryService;
     @Autowired AuditLogService auditLogService;
     @Autowired AuditLogRepository auditLogRepository;
@@ -37,7 +33,6 @@ class CacheAndAuditTest {
         categoryService.getAllSimple();
         assertThat(cache.get(org.springframework.cache.interceptor.SimpleKey.EMPTY)).isNotNull();
 
-        // Thao tac ghi phai lam cache mat hieu luc, khong duoc de client doc du lieu cu
         categoryService.create(new CategoryRequest("Cache-Cat-" + System.nanoTime(), "mo ta"));
         assertThat(cache.get(org.springframework.cache.interceptor.SimpleKey.EMPTY)).isNull();
     }

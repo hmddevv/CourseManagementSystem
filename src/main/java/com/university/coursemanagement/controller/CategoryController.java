@@ -26,9 +26,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
-@Tag(name = "Categories", description = "Quan ly danh muc khoa hoc")
+@Tag(name = "Categories", description = "Quản lý danh mục khóa học")
 public class CategoryController {
-
     private final CategoryService categoryService;
 
     public CategoryController(CategoryService categoryService) {
@@ -36,41 +35,41 @@ public class CategoryController {
     }
 
     @PostMapping
-    @Operation(summary = "Tao danh muc moi")
+    @Operation(summary = "Tạo danh mục mới")
     public ResponseEntity<ApiResponse<CategoryResponse>> create(@Valid @RequestBody CategoryRequest request) {
         CategoryResponse created = categoryService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Tao danh muc thanh cong", created));
+                .body(ApiResponse.ok("Tạo danh mục thành công", created));
     }
 
     @GetMapping
-    @Operation(summary = "Danh sach danh muc (phan trang)")
+    @Operation(summary = "Danh sách danh mục (phân trang)")
     public ApiResponse<PageResponse<CategoryResponse>> getAll(
             @PageableDefault(size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ApiResponse.ok(categoryService.getAll(pageable));
     }
 
     @GetMapping("/all")
-    @Operation(summary = "Danh sach danh muc gon (cho dropdown)")
+    @Operation(summary = "Danh sách danh mục gọn (cho dropdown)")
     public ApiResponse<List<CategoryResponse>> getAllSimple() {
         return ApiResponse.ok(categoryService.getAllSimple());
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Chi tiet danh muc")
+    @Operation(summary = "Chi tiết danh mục")
     public ApiResponse<CategoryResponse> getById(@PathVariable Long id) {
         return ApiResponse.ok(categoryService.getById(id));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Cap nhat danh muc")
+    @Operation(summary = "Cập nhật danh mục")
     public ApiResponse<CategoryResponse> update(@PathVariable Long id,
                                                 @Valid @RequestBody CategoryRequest request) {
-        return ApiResponse.ok("Cap nhat thanh cong", categoryService.update(id, request));
+        return ApiResponse.ok("Cập nhật thành công", categoryService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Xoa danh muc (chi khi khong co khoa hoc)")
+    @Operation(summary = "Xóa danh mục (chỉ khi không có khóa học)")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         categoryService.delete(id);
         return ResponseEntity.noContent().build();

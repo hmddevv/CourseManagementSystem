@@ -29,13 +29,9 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Kiem tra quy tac nghiep vu cua danh gia khoa hoc va bang xep hang.
- */
 @SpringBootTest
 @ActiveProfiles("dev")
 class ReviewServiceTest {
-
     @Autowired ReviewService reviewService;
     @Autowired EnrollmentService enrollmentService;
     @Autowired CourseService courseService;
@@ -52,7 +48,7 @@ class ReviewServiceTest {
         assertThatThrownBy(() -> reviewService.createReview(
                 course.getId(), new ReviewRequest(outsider.getId(), 5, "Chua hoc ma van danh gia")))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("da ghi danh");
+                .hasMessageContaining("đã ghi danh");
     }
 
     @Test
@@ -107,8 +103,6 @@ class ReviewServiceTest {
         assertThat(positionOfGood).isGreaterThanOrEqualTo(0);
         assertThat(positionOfAverage).isGreaterThan(positionOfGood);
     }
-
-    // ----- du lieu mau -----
 
     private int indexOfCourse(java.util.List<com.university.coursemanagement.dto.response.CourseRatingResponse> list,
                               Long courseId) {

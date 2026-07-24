@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LessonMapper {
-
     public Lesson toEntity(LessonRequest request) {
         return Lesson.builder()
                 .title(request.title())

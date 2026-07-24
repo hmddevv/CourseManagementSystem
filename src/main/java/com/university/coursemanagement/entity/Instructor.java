@@ -13,10 +13,6 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Giang vien phu trach cac khoa hoc.
- * Quan he: Instructor 1 --- N Course.
- */
 @Entity
 @Table(name = "instructors")
 @Getter
@@ -25,7 +21,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Instructor extends BaseEntity {
-
     @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 

@@ -23,9 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Tag(name = "Reviews", description = "Danh gia khoa hoc va bang xep hang theo diem")
+@Tag(name = "Reviews", description = "Đánh giá khóa học và bảng xếp hạng theo điểm")
 public class ReviewController {
-
     private final ReviewService reviewService;
 
     public ReviewController(ReviewService reviewService) {
@@ -33,15 +32,15 @@ public class ReviewController {
     }
 
     @PostMapping("/api/courses/{courseId}/reviews")
-    @Operation(summary = "Hoc vien danh gia khoa hoc (1-5 sao), chi khi da ghi danh")
+    @Operation(summary = "Học viên đánh giá khóa học (1-5 sao), chỉ khi đã ghi danh")
     public ResponseEntity<ApiResponse<ReviewResponse>> create(@PathVariable Long courseId,
                                                               @Valid @RequestBody ReviewRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Danh gia thanh cong", reviewService.createReview(courseId, request)));
+                .body(ApiResponse.ok("Đánh giá thành công", reviewService.createReview(courseId, request)));
     }
 
     @GetMapping("/api/courses/{courseId}/reviews")
-    @Operation(summary = "Danh sach danh gia cua mot khoa hoc (phan trang)")
+    @Operation(summary = "Danh sách đánh giá của một khóa học (phân trang)")
     public ApiResponse<PageResponse<ReviewResponse>> getByCourse(
             @PathVariable Long courseId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -49,21 +48,21 @@ public class ReviewController {
     }
 
     @GetMapping("/api/courses/top-rated")
-    @Operation(summary = "Bang xep hang khoa hoc theo diem trung binh (phan trang)")
+    @Operation(summary = "Bảng xếp hạng khóa học theo điểm trung bình (phân trang)")
     public ApiResponse<PageResponse<CourseRatingResponse>> topRated(
             @PageableDefault(size = 10) Pageable pageable) {
         return ApiResponse.ok(reviewService.getTopRated(pageable));
     }
 
     @PutMapping("/api/reviews/{reviewId}")
-    @Operation(summary = "Sua danh gia cua chinh minh")
+    @Operation(summary = "Sửa đánh giá của chính mình")
     public ApiResponse<ReviewResponse> update(@PathVariable Long reviewId,
                                               @Valid @RequestBody ReviewRequest request) {
-        return ApiResponse.ok("Cap nhat danh gia thanh cong", reviewService.updateReview(reviewId, request));
+        return ApiResponse.ok("Cập nhật đánh giá thành công", reviewService.updateReview(reviewId, request));
     }
 
     @DeleteMapping("/api/reviews/{reviewId}")
-    @Operation(summary = "Xoa danh gia")
+    @Operation(summary = "Xóa đánh giá")
     public ResponseEntity<Void> delete(@PathVariable Long reviewId) {
         reviewService.deleteReview(reviewId);
         return ResponseEntity.noContent().build();

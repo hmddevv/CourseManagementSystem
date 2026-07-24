@@ -5,18 +5,17 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-/** Du lieu hoc vien gui khi danh gia mot khoa hoc. */
 public record ReviewRequest(
 
-        @NotNull(message = "studentId khong duoc de trong")
+        @NotNull(message = "studentId không được để trống")
         Long studentId,
 
-        @NotNull(message = "Diem danh gia khong duoc de trong")
-        @Min(value = 1, message = "Diem danh gia phai tu 1 den 5")
-        @Max(value = 5, message = "Diem danh gia phai tu 1 den 5")
+        @NotNull(message = "Điểm đánh giá không được để trống")
+        @Min(value = 1, message = "Điểm đánh giá phải từ 1 đến 5")
+        @Max(value = 5, message = "Điểm đánh giá phải từ 1 đến 5")
         Integer rating,
 
-        @Size(max = 1000, message = "Nhan xet toi da 1000 ky tu")
+        @Size(max = 1000, message = "Nhận xét tối đa 1000 ký tự")
         String comment
 ) {
 }

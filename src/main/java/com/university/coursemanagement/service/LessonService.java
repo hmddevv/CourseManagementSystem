@@ -6,7 +6,6 @@ import com.university.coursemanagement.dto.response.LessonResponse;
 import java.util.List;
 
 public interface LessonService {
-
     LessonResponse addLesson(Long courseId, LessonRequest request);
 
     LessonResponse updateLesson(Long lessonId, LessonRequest request);

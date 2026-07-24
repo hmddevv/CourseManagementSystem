@@ -20,7 +20,6 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 public class StudentServiceImpl implements StudentService {
-
     private final StudentRepository studentRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentMapper studentMapper;
@@ -37,7 +36,7 @@ public class StudentServiceImpl implements StudentService {
     @Transactional
     public StudentResponse create(StudentRequest request) {
         if (studentRepository.existsByEmailIgnoreCase(request.email())) {
-            throw new DuplicateResourceException("Email '%s' da duoc su dung".formatted(request.email()));
+            throw new DuplicateResourceException("Email '%s' đã được sử dụng".formatted(request.email()));
         }
         Student saved = studentRepository.save(studentMapper.toEntity(request));
         return studentMapper.toResponse(saved, 0);
@@ -49,7 +48,7 @@ public class StudentServiceImpl implements StudentService {
         Student student = findOrThrow(id);
         if (!student.getEmail().equalsIgnoreCase(request.email())
                 && studentRepository.existsByEmailIgnoreCase(request.email())) {
-            throw new DuplicateResourceException("Email '%s' da duoc su dung".formatted(request.email()));
+            throw new DuplicateResourceException("Email '%s' đã được sử dụng".formatted(request.email()));
         }
         studentMapper.updateEntity(student, request);
         return toResponse(student);
@@ -76,21 +75,17 @@ public class StudentServiceImpl implements StudentService {
         Student student = findOrThrow(id);
         if (enrollmentRepository.existsByStudentId(id)) {
             throw new BusinessException(
-                    "Hoc vien da co lich su ghi danh, khong the xoa. Hay huy cac ghi danh truoc.");
+                    "Học viên đã có lịch sử ghi danh, không thể xóa. Hãy hủy các ghi danh trước.");
         }
         studentRepository.delete(student);
     }
 
-    /**
-     * Dem so ghi danh bang count query thay vi goi {@code student.getEnrollments().size()}
-     * tren collection LAZY - cach cu sinh 1 SELECT rieng cho tung hoc vien (N+1).
-     */
     private StudentResponse toResponse(Student student) {
         return studentMapper.toResponse(student, enrollmentRepository.countByStudentId(student.getId()));
     }
 
     private Student findOrThrow(Long id) {
         return studentRepository.findById(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("hoc vien", id));
+                .orElseThrow(() -> ResourceNotFoundException.of("học viên", id));
     }
 }

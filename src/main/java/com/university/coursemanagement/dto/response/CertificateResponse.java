@@ -2,7 +2,6 @@ package com.university.coursemanagement.dto.response;
 
 import java.time.LocalDateTime;
 
-/** Chung chi hoan thanh khoa hoc tra ve cho client. */
 public record CertificateResponse(
         Long id,
         String code,

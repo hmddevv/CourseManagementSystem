@@ -28,17 +28,9 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Job nhac hoc duoc goi truc tiep thay vi cho den 8h sang: phan can kiem tra la
- * dieu kien chon ghi danh khong hoat dong, khong phai co che dat lich cua Spring.
- *
- * <p>{@code updatedAt} do Hibernate tu quan ly nen test ghi de bang truy van JPQL
- * de mo phong ban ghi cu.</p>
- */
 @SpringBootTest(properties = "app.reminder.inactive-days=7")
 @ActiveProfiles("dev")
 class EnrollmentReminderSchedulerTest {
-
     @Autowired EnrollmentReminderScheduler scheduler;
     @Autowired EnrollmentRepository enrollmentRepository;
     @Autowired CategoryRepository categoryRepository;
@@ -66,10 +58,8 @@ class EnrollmentReminderSchedulerTest {
     void remindInactiveStudents_shouldRunWithoutError() {
         givenEnrollment(EnrollmentStatus.ACTIVE, LocalDateTime.now().minusDays(30));
 
-        scheduler.remindInactiveStudents();   // job chi ghi log, khong nem exception
+        scheduler.remindInactiveStudents();
     }
-
-    // ----- du lieu mau -----
 
     private Enrollment givenEnrollment(EnrollmentStatus status, LocalDateTime updatedAt) {
         Category category = categoryRepository.save(
@@ -96,13 +86,6 @@ class EnrollmentReminderSchedulerTest {
         return enrollment;
     }
 
-    /**
-     * Ghi de updatedAt de mo phong ban ghi lau khong dong den.
-     *
-     * <p>Phai dung cau UPDATE hang loat (JPQL) chu khong the {@code setUpdatedAt}
-     * roi save: {@code @UpdateTimestamp} se ghi de lai bang thoi diem hien tai khi
-     * flush. Cau UPDATE hang loat di thang xuong SQL, khong qua co che nay.</p>
-     */
     private void forceUpdatedAt(Long enrollmentId, LocalDateTime updatedAt) {
         transactionTemplate.executeWithoutResult(status ->
                 entityManager.createQuery("UPDATE Enrollment e SET e.updatedAt = :ts WHERE e.id = :id")

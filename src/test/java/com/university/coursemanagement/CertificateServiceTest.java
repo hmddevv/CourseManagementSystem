@@ -27,14 +27,9 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Kiem tra quy tac cap chung chi: chi cap khi hoan thanh 100%, va khong bao gio
- * cap trung cho cung mot ghi danh.
- */
 @SpringBootTest
 @ActiveProfiles("dev")
 class CertificateServiceTest {
-
     @Autowired EnrollmentService enrollmentService;
     @Autowired CertificateService certificateService;
     @Autowired CertificateRepository certificateRepository;
@@ -99,8 +94,6 @@ class CertificateServiceTest {
 
         assertThat(page.getContent()).hasSize(1);
     }
-
-    // ----- du lieu mau -----
 
     private com.university.coursemanagement.dto.response.EnrollmentResponse givenEnrollment() {
         Category category = categoryRepository.save(
