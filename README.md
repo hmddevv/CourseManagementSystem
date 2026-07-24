@@ -169,7 +169,7 @@ Lỗi trả về `ErrorResponse { status, error, message, path, fieldErrors }` q
 
 | Tài liệu | Nội dung |
 |---|---|
-| [`docs/database-schema.md`](docs/database-schema.md) | Sơ đồ ERD, mô tả chi tiết 6 bảng, ràng buộc, lý do thiết kế, đề xuất chỉ mục |
+| [`docs/database-schema.md`](docs/database-schema.md) | Sơ đồ ERD, mô tả chi tiết 9 bảng, ràng buộc, lý do thiết kế, đề xuất chỉ mục |
 | [`docs/architecture.md`](docs/architecture.md) | Sơ đồ tầng, sơ đồ package, sơ đồ tuần tự luồng ghi danh, danh mục API, cấu hình profile, triển khai |
 | [`docs/schema.sql`](docs/schema.sql) | DDL đầy đủ — **sinh trực tiếp từ metadata Hibernate**, không viết tay |
 | [`docs/toi-uu-hieu-nang.md`](docs/toi-uu-hieu-nang.md) | Các lỗi đã sửa kèm **số liệu đo trước/sau**, và các hạn chế đã biết |

@@ -89,6 +89,41 @@ erDiagram
         datetime   updated_at
         bigint     version
     }
+
+    REVIEWS {
+        bigint        id PK
+        bigint        student_id FK "NOT NULL - UK"
+        bigint        course_id FK "NOT NULL - UK"
+        integer       rating "NOT NULL 1..5"
+        varchar_1000  comment
+        datetime      created_at "NOT NULL"
+        datetime      updated_at
+        varchar_100   created_by "auditing"
+        bigint        version
+    }
+
+    CERTIFICATES {
+        bigint        id PK
+        bigint        enrollment_id FK "NOT NULL - UK"
+        varchar_60    code UK "NOT NULL"
+        datetime      issued_at "NOT NULL"
+        varchar_150   student_name "NOT NULL - snapshot"
+        varchar_200   course_title "NOT NULL - snapshot"
+        datetime      created_at "NOT NULL"
+        varchar_100   created_by "auditing"
+        bigint        version
+    }
+
+    AUDIT_LOGS {
+        bigint       id PK
+        varchar_60   entity_name "NOT NULL - idx"
+        bigint       entity_id "idx"
+        enum         action "CREATE UPDATE DELETE PUBLISH ARCHIVE ENROLL CANCEL"
+        varchar_100  actor "NOT NULL"
+        varchar_500  detail
+        datetime     created_at "NOT NULL"
+        bigint       version
+    }
 ```
 
 ### Tóm tắt quan hệ
