@@ -48,6 +48,55 @@ Cách tái tạo: đổi `findByIdForUpdate` thành `findById` trong `Enrollment
 
 Test sẽ báo `expected: 1 but was: 8`.
 
+### Lỗi thứ hai: khóa dòng vẫn chưa đủ trên MySQL thật
+
+Khi chuyển profile `dev` sang MySQL 8 (xem mục 6), nhóm em chạy lại đúng test này trên
+**MySQL thật** và nó **thất bại: `expected: 1 but was: 8`** — dù test vẫn xanh trên H2.
+
+Nguyên nhân là **mức cô lập giao dịch**, không phải khóa:
+
+- MySQL mặc định chạy ở **`REPEATABLE READ`**. Lần **đọc thường** đầu tiên trong giao dịch
+  chốt luôn một *snapshot*, và mọi lần đọc thường sau đó đều trả lời theo snapshot đó.
+- Trong `enroll()`, câu `studentRepository.findById(...)` chạy **trước** khi khóa dòng khóa học,
+  nên snapshot bị chốt ngay từ đầu.
+- Khóa bi quan **vẫn hoạt động đúng**: giao dịch thứ hai thật sự phải chờ giao dịch thứ nhất
+  commit. Nhưng câu đếm sức chứa `countByCourseIdAndStatus(...)` là **đọc thường**, nên sau khi
+  chờ xong nó vẫn đọc theo snapshot cũ → vẫn thấy **0 chỗ đã dùng** → cả 8 luồng đều lọt.
+- H2 không có cơ chế snapshot này (mặc định `READ_COMMITTED`) nên đọc lại thấy dữ liệu mới.
+  **Test xanh trên H2 trong khi mã nguồn thật sự sai trên MySQL.**
+
+Cách sửa — ghim mức cô lập cho đúng nghiệp vụ, tại `EnrollmentServiceImpl.enroll()`:
+
+```java
+@Transactional(isolation = Isolation.READ_COMMITTED)
+public EnrollmentResponse enroll(EnrollmentRequest request) { ... }
+```
+
+Ở `READ_COMMITTED`, mỗi lần đọc lấy dữ liệu đã commit mới nhất, nên câu đếm chạy **sau** khi
+giành được khóa mới phản ánh đúng thực tế. Khóa dòng lo phần loại trừ lẫn nhau, mức cô lập lo
+phần nhìn thấy dữ liệu mới — thiếu một trong hai đều sai.
+
+| Đo trên MySQL 8 (InnoDB) | Số luồng ghi danh thành công |
+|---|---|
+| Chỉ có khóa bi quan, để mặc định `REPEATABLE READ` | **8 / 8** — vượt sức chứa |
+| Khóa bi quan **+** `READ_COMMITTED` | **1 / 8** — đúng sức chứa |
+
+Cách tái tạo trên MySQL thật:
+
+```bash
+docker compose up -d mysql
+docker exec cms-mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" \
+  -e "CREATE DATABASE IF NOT EXISTS coursedb_test CHARACTER SET utf8mb4;
+      GRANT ALL ON coursedb_test.* TO \"course_user\"@\"%\"; FLUSH PRIVILEGES;"'
+```
+
+rồi tạm trỏ `@SpringBootTest(properties = ...)` của `EnrollmentConcurrencyTest` sang
+`jdbc:mysql://localhost:3307/coursedb_test` với `MySQLDialect`.
+
+**Đây là lý do trực tiếp khiến nhóm em bỏ H2 ở profile `dev`.** Một lỗi đồng thời nghiêm trọng
+đã nằm trong mã nguồn và bộ test vẫn báo xanh, chỉ vì môi trường phát triển chạy một CSDL khác
+với môi trường chạy thật.
+
 ---
 
 ## 2. Vấn đề N+1 query ở endpoint tìm kiếm khóa học
@@ -157,9 +206,11 @@ Toàn bộ hệ thống được chạy thử ở profile `prod` với MySQL 8 t
 | Dữ liệu bền vững | Tạo một danh mục qua API → `docker compose restart app` → gọi lại API, **dữ liệu vẫn còn** (volume `mysql_data`) |
 | `docker compose ps` | Cả hai container ở trạng thái `Up (healthy)` |
 
-Điểm khác biệt cần nêu khi trình bày: ở profile `dev` dùng H2 in-memory với `ddl-auto: create-drop`
-nên **mất sạch dữ liệu** mỗi lần tắt ứng dụng; ở profile `prod` dùng MySQL với volume nên dữ liệu
-sống qua các lần khởi động lại. Đây là lý do có hai profile chứ không phải chỉ để đổi chuỗi kết nối.
+Điểm cần nêu khi trình bày: `dev` và `prod` **chạy cùng MySQL 8**, chỉ khác nhau ở mức log, dữ
+liệu mẫu và nguồn lấy thông tin kết nối. Trước đây `dev` dùng H2 in-memory, và đó là một sai sót
+về **tính đồng nhất giữa môi trường phát triển và môi trường chạy thật**: lỗi phụ thuộc CSDL chỉ
+lộ ra sau khi triển khai. Nay H2 chỉ còn ở profile `test`, khai báo `<scope>test</scope>` nên
+không nằm trong file jar triển khai.
 
 ---
 
@@ -171,6 +222,12 @@ sống qua các lần khởi động lại. Đây là lý do có hai profile ch�
 | Phân trang dùng `OFFSET` | Dữ liệu đồ án nhỏ, `OFFSET` đủ dùng và đơn giản | **Keyset pagination** khi bảng vượt vài triệu dòng |
 | Chưa có index cho `courses.status`, `enrollments(course_id, status)` | Dữ liệu nhỏ, chưa đo được lợi ích | Thêm index khi có số liệu thực tế chứng minh |
 | **Danh tính người dùng lấy từ request** (`studentId` nằm trong body/URL) | Hệ thống chưa có xác thực — đây là hệ quả trực tiếp, không phải sơ suất riêng lẻ | Xem mục 8 bên dưới |
+| **Bộ test chạy trên H2, không phải MySQL** | Để `mvnw test` chạy được trên máy chưa cài gì và CI không cần dựng CSDL | **Testcontainers** — dựng đúng MySQL 8 trong Docker cho mỗi lần chạy test |
+
+> Hạn chế cuối bảng là hạn chế nhóm em **đã bị nó cắn một lần**: mục 1 mô tả một lỗi đồng thời
+> mà bộ test trên H2 vẫn báo xanh, chỉ lộ ra khi chạy trên MySQL thật. Đến khi thay H2 bằng
+> Testcontainers thì mỗi lần đổi mã liên quan tới khóa, giao dịch hay mức cô lập đều phải kiểm
+> lại thủ công trên MySQL theo hướng dẫn ở mục 1.
 
 Các hạn chế này được nêu rõ để **hiểu và giải thích được**, không phải để giấu đi.
 

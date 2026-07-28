@@ -19,6 +19,7 @@ import com.university.coursemanagement.service.CertificateService;
 import com.university.coursemanagement.service.EnrollmentService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -47,8 +48,18 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         this.certificateService = certificateService;
     }
 
+    /**
+     * Isolation is pinned to READ_COMMITTED on purpose.
+     *
+     * Under MySQL's default REPEATABLE READ, the first plain read in the transaction
+     * freezes a snapshot. The row lock below still serialises concurrent enrolments,
+     * but the capacity count further down is a plain read and would keep answering
+     * from that stale snapshot, so every waiting transaction still sees a free seat
+     * and the course goes over capacity. READ_COMMITTED makes each read see the
+     * latest committed data, so the count taken after the lock is acquired is real.
+     */
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public EnrollmentResponse enroll(EnrollmentRequest request) {
         Student student = studentRepository.findById(request.studentId())
                 .orElseThrow(() -> ResourceNotFoundException.of("học viên", request.studentId()));
