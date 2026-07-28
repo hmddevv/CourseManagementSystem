@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.datasource.url=jdbc:h2:mem:querycountdb;DB_CLOSE_DELAY=-1;MODE=MySQL",
         "spring.jpa.properties.hibernate.generate_statistics=true"
 })
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 class CourseSearchQueryCountTest {
     private static final int SEEDED_COURSES = 12;
 

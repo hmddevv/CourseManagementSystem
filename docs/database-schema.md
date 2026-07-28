@@ -394,8 +394,13 @@ diễn giải sai**. Lưu chuỗi cũng giúp đọc dữ liệu trực tiếp t
 
 | Profile | CSDL | `ddl-auto` | Ghi chú |
 |---|---|---|---|
-| `dev` | H2 in-memory | `create-drop` | Tạo mới mỗi lần chạy, dữ liệu mẫu nạp bằng `DataSeeder`. Không cần cài MySQL |
-| `prod` | MySQL 8 | `update` | Giữ lại dữ liệu giữa các lần khởi động |
+| `dev` | **MySQL 8** | `update` | Cùng engine với `prod`. Trỏ tới MySQL trong Docker ở `localhost:3307`; lần đầu chạy trên CSDL rỗng thì `DataSeeder` nạp dữ liệu mẫu |
+| `prod` | **MySQL 8** | `update` | Giữ lại dữ liệu giữa các lần khởi động (volume `mysql_data`) |
+| `test` | H2 in-memory | `create-drop` | Chỉ dành cho bộ test tự động: CSDL dựng lên rồi hủy ngay trong lần chạy |
+
+`dev` và `prod` **dùng chung MySQL 8** để lược đồ sinh ra ở môi trường phát triển đúng bằng lược
+đồ chạy thật — kiểu dữ liệu, đối chiếu chuỗi, cách sinh khóa chính và ngữ nghĩa khóa dòng đều
+phụ thuộc vào từng CSDL cụ thể.
 
 **Hạn chế đã nhận diện:** `ddl-auto: update` chỉ phù hợp cho đồ án. Trên hệ thống thật, Hibernate
 không xóa/đổi cột an toàn và không có lịch sử phiên bản lược đồ. Giải pháp đúng là **Flyway** hoặc

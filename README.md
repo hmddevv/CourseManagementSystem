@@ -16,7 +16,7 @@
 | Ngôn ngữ | Java 17 |
 | Framework | Spring Boot 3.4 (Web, Data JPA, Validation, Actuator) |
 | ORM | Hibernate / JPA |
-| CSDL | H2 (profile `dev`) · MySQL 8 (profile `prod`) |
+| CSDL | MySQL 8 — dùng chung cho cả profile `dev` và `prod` (H2 in-memory chỉ dành cho test tự động) |
 | Tài liệu API | springdoc-openapi (Swagger UI) |
 | Build | Maven (kèm Maven Wrapper `mvnw`) |
 | Đóng gói | Docker (multi-stage) + Docker Compose |
@@ -51,7 +51,7 @@ Client (Browser / Swagger)
 ├─────────────────────────────────────────────┤
 │  Repository   (Spring Data JPA)              │  ← truy vấn DB
 ├─────────────────────────────────────────────┤
-│  Entity / Database (JPA + MySQL/H2)          │
+│  Entity / Database (JPA + MySQL 8)           │
 └─────────────────────────────────────────────┘
    DTO  ←→  Mapper  ←→  Entity   (tách biệt lớp API với lớp CSDL)
 ```
@@ -100,24 +100,30 @@ docker compose up --build
 - Container ứng dụng chỉ khởi động sau khi MySQL báo `healthy` (`depends_on: service_healthy`).
 - Mọi thông tin đăng nhập đọc từ `.env` — file này **không** được commit.
 
-Kiểm chứng dữ liệu bền vững (khác hẳn H2 in-memory ở profile `dev`):
+Kiểm chứng dữ liệu bền vững qua volume MySQL:
 ```bash
 curl -X POST localhost:8080/api/categories -H "Content-Type: application/json" -d '{"name":"Test"}'
 docker compose restart app
 curl localhost:8080/api/categories/all     # dữ liệu vẫn còn
 ```
 
-### Cách B — Chạy nhanh bằng H2 (profile dev, không cần DB ngoài)
+### Cách B — Chạy app ở máy, CSDL vẫn là MySQL (profile dev)
 ```bash
-./mvnw spring-boot:run            # Linux/macOS
-mvnw.cmd spring-boot:run          # Windows
+docker compose up -d mysql        # chỉ bật CSDL, không bật app
+bash scripts/run-dev.sh
 ```
-- Tự nạp **dữ liệu mẫu** (DataSeeder) + H2 console tại `/h2-console`.
+- Kết nối tới đúng MySQL 8 ở `localhost:3307` — **cùng engine, cùng dialect, cùng `ddl-auto` với prod**.
+  Hai profile chỉ khác nhau ở mức log, dữ liệu mẫu và nguồn lấy thông tin kết nối.
+- `scripts/run-dev.sh` đọc tài khoản CSDL từ `.env`, nên **không có mật khẩu nào nằm trong mã nguồn**.
+- Lần chạy đầu trên CSDL rỗng, `DataSeeder` tự nạp **dữ liệu mẫu**; các lần sau không nạp lại.
+- Đừng bật đồng thời container `app`, vì cả hai cùng chiếm cổng 8080.
 
 ### Chạy test
 ```bash
 ./mvnw test
 ```
+Test chạy ở profile `test` với **H2 in-memory** — CSDL dựng lên rồi hủy ngay trong lần chạy, nên bộ test
+không phụ thuộc và không làm hỏng MySQL thật, và chạy được trên máy chưa cài gì.
 
 ---
 
@@ -155,13 +161,16 @@ Lỗi trả về `ErrorResponse { status, error, message, path, fieldErrors }` q
 
 ---
 
-## 6. Cấu hình môi trường (prod)
+## 6. Cấu hình môi trường
 
-| Biến | Mặc định | Ý nghĩa |
-|---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `dev` | Chọn profile |
-| `DB_URL` | `jdbc:mysql://localhost:3306/coursedb` | JDBC URL |
-| `DB_USERNAME` / `DB_PASSWORD` | `course_user` / `course_pass` | Tài khoản DB |
+| Biến | Mặc định ở `dev` | Mặc định ở `prod` | Ý nghĩa |
+|---|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | `dev` | `prod` (đặt trong `.env`) | Chọn profile |
+| `DB_URL` | `jdbc:mysql://localhost:3307/coursedb` | `jdbc:mysql://localhost:3306/coursedb` | JDBC URL — cổng khác nhau vì `dev` nối từ máy host vào container, `prod` chạy trong mạng Docker |
+| `DB_USERNAME` / `DB_PASSWORD` | `course_user` / `course_pass` | đọc từ `.env` | Tài khoản CSDL |
+
+Giá trị mặc định chỉ dùng cho máy cá nhân. Khi đã đổi mật khẩu trong `.env`, chạy `dev` bằng
+`scripts/run-dev.sh` để script tự lấy tài khoản từ `.env`.
 
 ---
 
@@ -173,7 +182,8 @@ Lỗi trả về `ErrorResponse { status, error, message, path, fieldErrors }` q
 | [`docs/architecture.md`](docs/architecture.md) | Sơ đồ tầng, sơ đồ package, sơ đồ tuần tự luồng ghi danh, danh mục API, cấu hình profile, triển khai |
 | [`docs/schema.sql`](docs/schema.sql) | DDL đầy đủ — **sinh trực tiếp từ metadata Hibernate**, không viết tay |
 | [`docs/toi-uu-hieu-nang.md`](docs/toi-uu-hieu-nang.md) | Các lỗi đã sửa kèm **số liệu đo trước/sau**, và các hạn chế đã biết |
-| [`scripts/seed-demo.sh`](scripts/seed-demo.sh) | Nạp dữ liệu mẫu qua REST API (dùng khi chạy profile `prod`, vì `DataSeeder` chỉ chạy ở `dev`) |
+| [`scripts/seed-demo.sh`](scripts/seed-demo.sh) | Nạp dữ liệu mẫu qua REST API (dùng khi chạy profile `prod`, vì `DataSeeder` chỉ chạy ở `dev`/`test`) |
+| [`scripts/run-dev.sh`](scripts/run-dev.sh) | Chạy app ở profile `dev`, tự lấy tài khoản CSDL từ `.env` |
 
 Ảnh sơ đồ dùng cho báo cáo: `docs/database-schema.png`, `docs/architecture.png`,
 `docs/architecture-package.png`, `docs/architecture-sequence-enrollment.png`, `docs/deployment.png`.

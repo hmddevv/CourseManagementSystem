@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.datasource.url=jdbc:h2:mem:concurrencydb;DB_CLOSE_DELAY=-1;MODE=MySQL;LOCK_TIMEOUT=20000",
         "spring.datasource.hikari.maximum-pool-size=16"
 })
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 class EnrollmentConcurrencyTest {
     private static final int THREADS = 8;
 

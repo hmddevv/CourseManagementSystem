@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
-@Profile("dev")
+@Profile({"dev", "test"})
 public class DataSeeder implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
 
@@ -57,7 +57,7 @@ public class DataSeeder implements CommandLineRunner {
         if (categoryRepository.count() > 0) {
             return;
         }
-        log.info("[DataSeeder] Nạp dữ liệu mẫu cho profile dev...");
+        log.info("[DataSeeder] Nạp dữ liệu mẫu...");
 
         Category programming = categoryRepository.save(Category.builder()
                 .name("Lập trình").description("Các khóa học lập trình phần mềm").build());

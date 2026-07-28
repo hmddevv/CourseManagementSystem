@@ -26,7 +26,7 @@ flowchart TD
         Cross["<b>Thành phần xuyên suốt</b><br/>GlobalExceptionHandler · DTO/Mapper<br/>Factory · ApiResponse · OpenApiConfig"]
     end
 
-    DB[("Cơ sở dữ liệu<br/>H2 (dev) · MySQL 8 (prod)")]
+    DB[("Cơ sở dữ liệu<br/>MySQL 8 (dev và prod)")]
 
     Client -- "HTTP + JSON" --> Ctrl
     Ent --> DB
@@ -290,7 +290,7 @@ Tổng cộng **42 endpoint** chia theo 9 nhóm tài nguyên. Tài liệu tươn
 | Cache | Spring Cache (`spring-boot-starter-cache`) | `@Cacheable` / `@CacheEvict` |
 | Job định kỳ | Spring Scheduling | `@Scheduled` nhắc học viên |
 | Tiện ích | Lombok | `@Getter`, `@Builder` — giảm mã lặp |
-| CSDL | H2 (dev) · MySQL 8 (prod) | |
+| CSDL | MySQL 8 (dev và prod) | H2 in-memory chỉ dùng cho bộ test tự động |
 | Build | Maven + Maven Wrapper | Chạy được không cần cài Maven sẵn |
 | Đóng gói | Docker multi-stage + Docker Compose | |
 | CI | GitHub Actions | Build + test mỗi lần push |
@@ -300,17 +300,26 @@ Tổng cộng **42 endpoint** chia theo 9 nhóm tài nguyên. Tài liệu tươn
 
 ## 8. Cấu hình theo môi trường (Spring Profiles)
 
-| Cấu hình | `dev` | `prod` |
-|---|---|---|
-| CSDL | H2 in-memory | MySQL 8 |
-| `ddl-auto` | `create-drop` | `update` |
-| Dữ liệu mẫu | `DataSeeder` tự nạp | không nạp |
-| H2 Console | bật (`/h2-console`) | tắt |
-| Thông tin kết nối | giá trị mặc định | đọc từ biến môi trường |
-| Mức log SQL | hiển thị câu SQL | tắt |
+| Cấu hình | `dev` | `prod` | `test` |
+|---|---|---|---|
+| CSDL | **MySQL 8** | **MySQL 8** | H2 in-memory |
+| `ddl-auto` | `update` | `update` | `create-drop` |
+| Dữ liệu mẫu | `DataSeeder` tự nạp | không nạp | `DataSeeder` tự nạp |
+| Thông tin kết nối | mặc định trỏ `localhost:3307` | đọc từ biến môi trường | cố định trong bộ nhớ |
+| Mức log SQL | hiển thị câu SQL | tắt | tắt |
 
-Kích hoạt bằng biến môi trường `SPRING_PROFILES_ACTIVE`; mặc định là `dev` để chạy được ngay
-sau khi clone mà **không cần cài đặt CSDL** nào.
+Kích hoạt bằng biến môi trường `SPRING_PROFILES_ACTIVE`; mặc định là `dev`.
+
+**`dev` và `prod` dùng chung một engine CSDL.** Đây là chủ ý: nếu môi trường phát triển chạy
+một CSDL khác môi trường chạy thật thì lỗi chỉ lộ ra sau khi triển khai — khác biệt về kiểu dữ
+liệu, đối chiếu chuỗi, cách sinh khóa chính và **ngữ nghĩa khóa dòng (`SELECT ... FOR UPDATE`)**
+đều không giống nhau giữa các CSDL. Hai profile chỉ khác nhau ở mức log, dữ liệu mẫu và nguồn
+lấy thông tin kết nối — tức là **cấu hình**, không phải công nghệ.
+
+Profile `test` là ngoại lệ **có lý do khác hẳn**: bộ test cần một CSDL dựng lên rồi hủy ngay
+trong lần chạy, để test không phụ thuộc vào và không làm hỏng dữ liệu MySQL thật, đồng thời
+`mvnw test` chạy được trên máy chưa cài gì. Vì vậy H2 được khai báo `<scope>test</scope>` trong
+`pom.xml` — nó **không nằm trong file jar triển khai**.
 
 ### `spring.jpa.open-in-view: false`
 
@@ -350,5 +359,5 @@ flowchart LR
 - **`depends_on: condition: service_healthy`:** container ứng dụng chỉ khởi động sau khi MySQL
   thực sự sẵn sàng nhận kết nối — nếu chỉ dùng `depends_on` thường, ứng dụng có thể khởi động
   trước và crash vì chưa kết nối được CSDL.
-- **Volume MySQL:** dữ liệu tồn tại qua các lần `docker compose restart` — khác hẳn H2
-  in-memory ở profile `dev` (mất sạch khi tắt ứng dụng).
+- **Volume MySQL:** dữ liệu tồn tại qua các lần `docker compose restart` và `docker compose down`;
+  chỉ mất khi xóa volume bằng `docker compose down -v`.

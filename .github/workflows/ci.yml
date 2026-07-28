@@ -20,7 +20,7 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Build & Test (profile dev / H2)
+      - name: Build & Test
         run: mvn -B clean verify
 
       - name: Build Docker image

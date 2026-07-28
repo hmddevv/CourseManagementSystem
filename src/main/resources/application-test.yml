@@ -1,0 +1,27 @@
+# ==========================================================================
+# TEST profile - H2 in-memory, used only by the automated test suite.
+#
+# Tests need a database that is created and dropped inside the test run so
+# they cannot depend on, or damage, a real MySQL instance, and so the suite
+# stays runnable on a machine with nothing installed. H2 runs in MySQL
+# compatibility mode.
+#
+# This profile is never used to run the application: H2 is declared with
+# test scope in pom.xml and is not part of the deployable jar.
+# ==========================================================================
+spring:
+  datasource:
+    url: jdbc:h2:mem:coursedb;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+logging:
+  level:
+    com.university.coursemanagement: INFO
+    org.hibernate.SQL: WARN

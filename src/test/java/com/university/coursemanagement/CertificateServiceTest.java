@@ -28,7 +28,7 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 class CertificateServiceTest {
     @Autowired EnrollmentService enrollmentService;
     @Autowired CertificateService certificateService;

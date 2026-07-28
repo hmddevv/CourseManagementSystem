@@ -1,7 +1,8 @@
 # ==========================================================================
 # Common configuration (shared across all profiles)
 # Active profile is selected via SPRING_PROFILES_ACTIVE env var.
-# Default profile = dev (H2 in-memory) so the app runs with zero setup.
+# Default profile = dev. Both dev and prod run MySQL 8; they differ only in
+# credentials, logging and sample data. The test profile is for tests only.
 # ==========================================================================
 spring:
   application:

@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = "app.reminder.inactive-days=7")
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 class EnrollmentReminderSchedulerTest {
     @Autowired EnrollmentReminderScheduler scheduler;
     @Autowired EnrollmentRepository enrollmentRepository;
