@@ -39,6 +39,10 @@ function toast(msg, type = "success") {
 
 /* ---------- Utils ---------- */
 const money = (n) => (n == null ? "0" : Number(n).toLocaleString("vi-VN")) + "đ";
+/** Group digits the vi-VN way: 1200000 -> "1.200.000". Rounds to whole dong. */
+const groupDigits = (n) => String(Math.round(Number(n)) || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+/** Inverse of groupDigits: "1.200.000" -> "1200000". */
+const ungroup = (s) => String(s ?? "").replace(/\D/g, "");
 const esc = (s) => (s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])));
 const badge = (v, extra = "") => `<span class="badge ${extra} ${esc(v)}">${esc(v)}</span>`;
 /** Hien thi diem danh gia dang sao, vi du 4.5 -> "★★★★☆ 4.5 (12)". */
@@ -66,7 +70,13 @@ const Modal = {
     info(title, html) {
         this.open(title, html, null);
     },
-    val(name) { const el = document.querySelector(`#modal-form [name="${name}"]`); return el ? el.value : null; },
+    val(name) {
+        const el = document.querySelector(`#modal-form [name="${name}"]`);
+        if (!el) return null;
+        // Grouped-number inputs carry separators for readability; strip them so
+        // the caller still gets something Number() can parse.
+        return el.hasAttribute("data-money") ? ungroup(el.value) : el.value;
+    },
     async submit() {
         if (!this._submit) return;
         try {
@@ -85,8 +95,30 @@ function field(label, name, type = "text", value = "", opts) {
     if (type === "textarea") {
         return `<div class="field"><label>${label}</label><textarea name="${name}">${esc(value)}</textarea></div>`;
     }
+    if (type === "money") {
+        // type=text, not number: browsers reject the grouping separators.
+        // Zero renders as empty so a new form does not start with a stray "0"
+        // the user has to delete; an empty field still submits as 0.
+        const shown = Number(value) ? groupDigits(value) : "";
+        return `<div class="field"><label>${label}</label><input name="${name}" type="text"`
+            + ` inputmode="numeric" autocomplete="off" placeholder="0" data-money value="${shown}"></div>`;
+    }
     return `<div class="field"><label>${label}</label><input name="${name}" type="${type}" value="${esc(value)}"></div>`;
 }
+
+// Regroup separators as the user types, keeping the caret after the same digit.
+document.getElementById("modal-form").addEventListener("input", (e) => {
+    const el = e.target;
+    if (!el.matches || !el.matches("[data-money]")) return;
+    const digitsBefore = ungroup(el.value.slice(0, el.selectionStart)).length;
+    el.value = groupDigits(ungroup(el.value));
+    let pos = 0, seen = 0;
+    while (pos < el.value.length && seen < digitsBefore) {
+        if (/\d/.test(el.value[pos])) seen++;
+        pos++;
+    }
+    el.setSelectionRange(pos, pos);
+});
 
 /* ---------- Tab navigation ---------- */
 document.querySelectorAll(".tab").forEach(tab => {
@@ -183,7 +215,7 @@ const CourseUI = {
             field("Tiêu đề", "title", "text", c.title) +
             field("Mô tả", "description", "textarea", c.description) +
             field("Trình độ", "level", "select", c.level, levels) +
-            field("Giá (đ)", "price", "number", c.price) +
+            field("Giá (đ)", "price", "money", c.price) +
             field("Sức chứa", "capacity", "number", c.capacity) +
             field("Thời lượng (giờ)", "durationHours", "number", c.durationHours) +
             field("Danh mục", "categoryId", "select", c.categoryId, cats.map(x => ({ value: x.id, label: x.name }))) +
