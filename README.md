@@ -64,18 +64,21 @@ Client (Browser / Swagger)
 ### Package
 ```
 com.university.coursemanagement
-├── controller      REST controllers
+├── controller      9 REST controllers
 ├── service / impl  Interface + implementation nghiệp vụ
-├── repository      Spring Data JPA + Specifications (lọc động)
+├── repository      Spring Data JPA + CourseSpecifications (lọc động)
 ├── entity / enums  JPA entities + enum
 ├── dto
 │   ├── request     DTO đầu vào (có Bean Validation)
 │   ├── response    DTO đầu ra
 │   └── mapper      Chuyển đổi Entity ↔ DTO
-├── exception       GlobalExceptionHandler + custom exceptions
-├── factory         EnrollmentFactory (Factory Pattern)
+├── exception       GlobalExceptionHandler + 3 custom exception + ErrorResponse
+├── factory         EnrollmentFactory, CertificateFactory (Factory Pattern)
+├── aspect          AuditAspect — ghi nhật ký thao tác bằng Spring AOP
+├── scheduler       EnrollmentReminderScheduler — job nhắc học định kỳ
 ├── common          ApiResponse, PageResponse
-└── config          OpenAPI, DataSeeder
+└── config          CacheConfig, JpaAuditingConfig, OpenApiConfig,
+                    SchedulingConfig, DataSeeder
 ```
 
 ### Mô hình dữ liệu (quan hệ)
@@ -157,6 +160,8 @@ Lỗi trả về `ErrorResponse { status, error, message, path, fieldErrors }` q
 - **Nghiệp vụ & validate**: Bean Validation trên mọi DTO; quy tắc nghiệp vụ (khóa đầy, publish khi chưa có bài học, xóa danh mục đang dùng…) ném exception được xử lý tập trung.
 - **Kiến trúc & code**: Layered rõ ràng, **Dependency Injection** qua constructor, **DTO tách Entity**, **Builder Pattern** (Lombok `@Builder`) + **Factory Pattern** (`EnrollmentFactory`), tách **Profile dev/prod**.
 - **CSDL & API**: quan hệ + khóa ngoại chặt, RESTful, JSON chuẩn, **Paging/Sorting**, **Swagger**, `@Transactional`, **Global Exception Handler**, optimistic locking (`@Version`).
+- **Xử lý đồng thời (có đo)**: ghi danh vượt sức chứa khi nhiều luồng chạy song song được sửa bằng **khóa bi quan** (`SELECT ... FOR UPDATE`) **kết hợp** ghim mức cô lập `READ_COMMITTED` — chỉ khóa thôi vẫn sai trên MySQL. Đo trên MySQL 8: **8/8 luồng lọt → 1/8**. Chi tiết ở [`docs/toi-uu-hieu-nang.md`](docs/toi-uu-hieu-nang.md).
+- **Hiệu năng (có đo)**: chặn **N+1 query** ở màn danh sách khóa học bằng `@EntityGraph` + 3 truy vấn gộp `GROUP BY` — **29 → 4 câu truy vấn**, và số truy vấn không tăng theo số dòng (khóa chặt bằng test).
 - **Công cụ**: Maven, **Docker + Docker Compose**, **GitHub Actions CI**, cấu hình qua biến môi trường.
 
 ---
